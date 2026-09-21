@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "threshold": 3,
+  "mastery": 5,
+  "skills": [
+    {
+      "id": "write-a-test",
+      "name": "Write a test",
+      "teaches": "Write the pytest case first and watch it fail for the right reason. A test that has never failed proves nothing.",
+      "witness": ["test"],
+      "requires": [],
+      "precedents": []
+    },
+    {
+      "id": "debug-a-failing-test",
+      "name": "Debug a failing test",
+      "teaches": "Read the traceback from the bottom up before you change anything, and find the smallest change that makes it pass. Keep the test.",
+      "witness": ["test"],
+      "requires": ["write-a-test"],
+      "precedents": []
+    },
+    {
+      "id": "add-route",
+      "name": "Add a route",
+      "teaches": "Add the route to the FastAPI or Flask app and keep the handler thin. The handler reads the request and calls a function that does the work.",
+      "witness": ["test"],
+      "requires": ["write-a-test", "debug-a-failing-test"],
+      "precedents": []
+    },
+    {
+      "id": "add-endpoint-with-validation",
+      "name": "Add an endpoint with validation",
+      "teaches": "Declare the request body as a pydantic model so a bad request is rejected before any work starts. Everything below the model can trust what it got.",
+      "witness": ["test", "types"],
+      "requires": ["add-route"],
+      "precedents": []
+    },
+    {
+      "id": "write-a-migration",
+      "name": "Write a migration",
+      "teaches": "Change the schema in an alembic revision that runs once and replays on an empty database. Write the downgrade, and never edit a revision that has shipped.",
+      "witness": ["test"],
+      "requires": ["write-a-test"],
+      "precedents": []
+    },
+    {
+      "id": "verify-webhook-signature",
+      "name": "Verify a webhook signature",
+      "teaches": "Reject any request whose signature does not match, using the raw body and hmac.compare_digest.",
+      "witness": ["test"],
+      "requires": ["write-a-test", "add-endpoint-with-validation"],
+      "precedents": []
+    },
+    {
+      "id": "idempotency-key",
+      "name": "Honor an idempotency key",
+      "teaches": "Take a key from the caller, store the result under it, and return that same result when the key comes back. A retry must not charge twice.",
+      "witness": ["test"],
+      "requires": ["add-endpoint-with-validation", "write-a-migration"],
+      "precedents": []
+    },
+    {
+      "id": "retry-with-backoff",
+      "name": "Retry with backoff",
+      "teaches": "Retry only the calls that are safe to repeat, sleep longer after each attempt, and add jitter so every client does not come back at once. Stop at a bound and raise.",
+      "witness": ["test"],
+      "requires": ["debug-a-failing-test"],
+      "precedents": []
+    },
+    {
+      "id": "handle-an-error-boundary",
+      "name": "Handle an error boundary",
+      "teaches": "Decide at the boundary which exceptions the caller sees and which only reach the log. Map each one to a status and a message that gives nothing away.",
+      "witness": ["test", "types"],
+      "requires": ["add-route", "debug-a-failing-test"],
+      "precedents": []
+    },
+    {
+      "id": "add-a-background-job",
+      "name": "Add a background job",
+      "teaches": "Move slow work off the request into a queue worker or a scheduled job, and make the job safe to run twice. The request records the work, the worker does it.",
+      "witness": ["test"],
+      "requires": ["retry-with-backoff", "idempotency-key"],
+      "precedents": []
+    }
+  ],
+  "zones": []
+}

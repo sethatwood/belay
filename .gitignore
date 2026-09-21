@@ -1,0 +1,9 @@
+.vscode/
+.DS_Store
+node_modules/
+.belay/state.json
+notes/
+
+examples/*/package-lock.json
+examples/*/.belay/logbook/
+examples/*/.claude/

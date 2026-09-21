@@ -1,0 +1,14 @@
+{
+  "name": "belay",
+  "displayName": "Belay",
+  "version": "0.1.0",
+  "description": "You climb. It holds the rope. A Claude Code plugin where you do the work, it coaches, and you earn delegation one skill at a time.",
+  "author": {
+    "name": "Seth Merrick Atwood",
+    "url": "https://sethmerrickatwood.com"
+  },
+  "homepage": "https://belay.page",
+  "repository": "https://github.com/sethatwood/belay",
+  "license": "MIT",
+  "keywords": ["learning", "apprentice", "junior", "coaching", "skills", "hooks"]
+}

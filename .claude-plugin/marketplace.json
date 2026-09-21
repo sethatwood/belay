@@ -1,0 +1,25 @@
+{
+  "name": "belay",
+  "description": "Belay, a Claude Code plugin where you do the work and earn delegation one skill at a time.",
+  "owner": {
+    "name": "Seth Merrick Atwood",
+    "url": "https://sethmerrickatwood.com"
+  },
+  "plugins": [
+    {
+      "name": "belay",
+      "displayName": "Belay",
+      "source": "./",
+      "description": "You climb. It holds the rope. You do the work, it coaches, and you earn delegation one skill at a time.",
+      "version": "0.1.0",
+      "category": "learning",
+      "tags": [
+        "learning",
+        "apprentice",
+        "coaching",
+        "skills"
+      ],
+      "homepage": "https://belay.page"
+    }
+  ]
+}
