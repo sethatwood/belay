@@ -21435,7 +21435,7 @@ var StdioServerTransport = class {
 // package.json
 var package_default = {
   name: "belay-server",
-  version: "0.2.1",
+  version: "0.2.2",
   private: true,
   description: "The logbook and skill map behind Belay, served to Claude Code over MCP.",
   type: "module",
