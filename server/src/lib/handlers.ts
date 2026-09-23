@@ -102,6 +102,8 @@ export function sessionStart(input: HookInput): HookOutput {
 
 export function prompt(input: HookInput): HookOutput {
   const root = rootOf(input);
+  // A repo with no map is not Belay's, and every prompt there stays as it was.
+  if (map.read(root) === null) return null;
   const lines = stateFile.update(root, (state) => {
     const out: string[] = [];
     const step = state.step;

@@ -758,3 +758,34 @@ test("hint, ask, and answer refuse a skill that is not the open step's", () => {
     f.cleanup();
   }
 });
+
+test("belay_init gives a folder inside a dotfiles repo in home a repo of its own", () => {
+  const h = homeWithProject();
+  try {
+    runGit(h.home, ["init", "-q"]);
+    const result = rec(belayInit("typescript", undefined, h.project));
+    assert.equal(result.gitInit, true);
+    assert.ok(existsSync(join(h.project, ".git")));
+  } finally {
+    h.cleanup();
+  }
+});
+
+test("a Belay root below the top of its git repo names the person's files from the Belay root", () => {
+  const f = makeRepo();
+  try {
+    // A team puts Belay in one package of a monorepo.
+    const pkg = join(f.root, "packages", "billing");
+    writeFile(pkg, ".belay/map.json", readFileSync(join(f.root, ".belay/map.json"), "utf8"));
+    writeFile(pkg, "src/routes.ts", "export const routes = [];\n");
+    runGit(f.root, ["add", "-A"]);
+    runGit(f.root, ["commit", "-q", "-m", "billing package"]);
+    belayBeginStep("add-route", "the summary route", false, pkg);
+    writeFile(pkg, "src/routes.ts", "export const routes = ['summary'];\n");
+    writeFile(pkg, "src/summary.ts", "export const summary = () => 0;\n");
+    witness({ cwd: pkg, tool_input: { command: "npx vitest run" }, tool_response: VITEST_PASS });
+    assert.deepEqual(readState(pkg).step?.pending?.files.sort(), ["src/routes.ts", "src/summary.ts"]);
+  } finally {
+    f.cleanup();
+  }
+});

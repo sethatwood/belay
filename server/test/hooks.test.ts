@@ -3,12 +3,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync, spawn } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { attribute, gate, prompt, sessionStart, stop, witness } from "../src/lib/handlers.js";
 import { belayAsk, belayBeginStep, belayEndStep } from "../src/lib/tools.js";
 import { read as readState, write as writeState } from "../src/lib/state.js";
-import { VITEST_FAIL, VITEST_PASS, makeRepo, rec, unaidedEntry, writeFile } from "./helpers.js";
+import { VITEST_FAIL, VITEST_PASS, makeRepo, rec, runGit, unaidedEntry, writeFile } from "./helpers.js";
 
 const HOOKS_ENTRY = fileURLToPath(new URL("../src/hooks.ts", import.meta.url));
 
@@ -596,6 +597,36 @@ test("the hooks resolve the repo from the session's project directory, not from 
     assert.equal(rec(rec(out).hookSpecificOutput).permissionDecision, "deny");
   } finally {
     delete process.env.CLAUDE_PROJECT_DIR;
+    f.cleanup();
+  }
+});
+
+test("the prompt hook says nothing in a repo that is not Belay's", () => {
+  const f = makeRepo();
+  try {
+    const plain = join(f.base, "plain");
+    runGit(join(f.base), ["init", "-q", "plain"]);
+    assert.equal(prompt({ cwd: plain, hook_event_name: "UserPromptSubmit", prompt: "hello" }), null);
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("a session in the home directory ignores what an earlier version left in ~/.belay", () => {
+  const f = makeRepo();
+  try {
+    writeFile(f.home, ".belay/map.json", readFileSync(join(f.root, ".belay/map.json"), "utf8"));
+    writeState(f.home, {
+      version: 1,
+      step: { ...(readState(f.root).step ?? {}), id: "x", skill: "add-route", mode: "you", goal: "", startedAt: "", baseline: null, followUp: false, hints: 0, snapshot: {}, toolEdits: [], witnesses: [], pending: null, question: null },
+      last: null,
+    });
+    const text = String(ctx(sessionStart({ cwd: f.home, hook_event_name: "SessionStart" })).additionalContext);
+    assert.match(text, /no map/);
+    assert.match(text, /set itself up in the home directory by mistake/);
+    const out = gate({ cwd: f.home, hook_event_name: "PreToolUse", tool_name: "Edit", tool_input: { file_path: join(f.home, "notes.txt") } });
+    assert.equal(out, null);
+  } finally {
     f.cleanup();
   }
 });

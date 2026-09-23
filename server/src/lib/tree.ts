@@ -20,11 +20,13 @@ function paths(output: string | null): string[] {
 
 // Every tracked file that differs from the baseline commit plus every
 // untracked file, minus Belay's own directory and installed packages. The -z
-// output keeps names with spaces or accents exactly as they are on disk.
+// output keeps names with spaces or accents exactly as they are on disk, and
+// --relative names tracked files from the Belay root, the way ls-files names
+// untracked ones, when that root sits below the top of the git repo.
 export function changedPaths(root: string, baseline: string | null): string[] {
   const found = new Set<string>();
   if (baseline !== null && baseline.length > 0) {
-    for (const p of paths(git(root, ["diff", "--name-only", "-z", baseline, "--"]))) found.add(p);
+    for (const p of paths(git(root, ["diff", "--name-only", "--relative", "-z", baseline, "--"]))) found.add(p);
   }
   for (const p of paths(git(root, ["ls-files", "--others", "--exclude-standard", "-z"]))) found.add(p);
   return [...found].filter(

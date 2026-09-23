@@ -2,7 +2,7 @@
 // in the defaults the design gives, so the rest of the code never guesses.
 
 import { existsSync, readFileSync } from "node:fs";
-import { mapPath } from "./paths.js";
+import { isHomeDir, mapPath } from "./paths.js";
 
 export type WitnessKind = "test" | "types" | "build";
 
@@ -76,9 +76,11 @@ export function exists(root: string): boolean {
   return existsSync(mapPath(root));
 }
 
-// Null when the repo has no map. A map that will not parse is an error, so a
+// Null when the repo has no map, and always in the home directory, whose
+// .belay is the private side. A map that will not parse is an error, so a
 // typo is reported rather than read as an empty map.
 export function read(root: string): SkillMap | null {
+  if (isHomeDir(root)) return null;
   const path = mapPath(root);
   if (!existsSync(path)) return null;
   let raw: unknown;

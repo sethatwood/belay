@@ -6,7 +6,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { belayDir, statePath } from "./paths.js";
+import { belayDir, isHomeDir, statePath } from "./paths.js";
 
 export type Mode = "you" | "review" | "quiet";
 
@@ -71,7 +71,10 @@ export interface State {
 
 const EMPTY: State = { version: 1, step: null, last: null };
 
+// The home directory never has a step in progress, whatever an earlier
+// version left in ~/.belay.
 export function read(root: string): State {
+  if (isHomeDir(root)) return { ...EMPTY };
   const path = statePath(root);
   if (!existsSync(path)) return { ...EMPTY };
   try {
@@ -160,7 +163,7 @@ function acquire(path: string): boolean {
 // file is written only when fn changed something, and never in a folder with
 // no .belay directory.
 export function update<T>(root: string, fn: (state: State) => T): T {
-  const hasBelay = existsSync(belayDir(root));
+  const hasBelay = existsSync(belayDir(root)) && !isHomeDir(root);
   const path = lockPath(root);
   const held = hasBelay && acquire(path);
   try {

@@ -353,9 +353,12 @@ function ignoreLines(root: string, lines: string[]): boolean {
 }
 
 // Belay reads the person's work from git, so a folder with no repo gets one.
-// True when this call ran git init.
+// A folder inside a dotfiles repo in the home directory gets its own too, or
+// its diff would be read against the home directory. True when this call ran
+// git init.
 function ensureRepo(root: string): boolean {
-  if (git(root, ["rev-parse", "--is-inside-work-tree"]) === "true") return false;
+  const top = git(root, ["rev-parse", "--show-toplevel"]);
+  if (top !== null && top.length > 0 && !isHomeDir(top)) return false;
   if (git(root, ["init", "-q"]) === null) {
     throw new Error("git init failed here, and Belay needs git to see what changed; install git and run this again");
   }

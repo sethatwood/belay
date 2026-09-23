@@ -21617,6 +21617,7 @@ function normalize(raw) {
   };
 }
 function read(root) {
+  if (isHomeDir(root)) return null;
   const path = mapPath(root);
   if (!existsSync2(path)) return null;
   let raw;
@@ -21939,6 +21940,7 @@ import { tmpdir } from "node:os";
 import { join as join2, resolve as resolve2 } from "node:path";
 var EMPTY = { version: 1, step: null, last: null };
 function read3(root) {
+  if (isHomeDir(root)) return { ...EMPTY };
   const path = statePath(root);
   if (!existsSync4(path)) return { ...EMPTY };
   try {
@@ -22010,7 +22012,7 @@ function acquire(path) {
   }
 }
 function update(root, fn) {
-  const hasBelay = existsSync4(belayDir(root));
+  const hasBelay = existsSync4(belayDir(root)) && !isHomeDir(root);
   const path = lockPath(root);
   const held = hasBelay && acquire(path);
   try {
@@ -22053,7 +22055,7 @@ function paths(output) {
 function changedPaths(root, baseline) {
   const found = /* @__PURE__ */ new Set();
   if (baseline !== null && baseline.length > 0) {
-    for (const p of paths(git(root, ["diff", "--name-only", "-z", baseline, "--"]))) found.add(p);
+    for (const p of paths(git(root, ["diff", "--name-only", "--relative", "-z", baseline, "--"]))) found.add(p);
   }
   for (const p of paths(git(root, ["ls-files", "--others", "--exclude-standard", "-z"]))) found.add(p);
   return [...found].filter(
@@ -22352,7 +22354,8 @@ function ignoreLines(root, lines) {
   return true;
 }
 function ensureRepo(root) {
-  if (git(root, ["rev-parse", "--is-inside-work-tree"]) === "true") return false;
+  const top = git(root, ["rev-parse", "--show-toplevel"]);
+  if (top !== null && top.length > 0 && !isHomeDir(top)) return false;
   if (git(root, ["init", "-q"]) === null) {
     throw new Error("git init failed here, and Belay needs git to see what changed; install git and run this again");
   }
