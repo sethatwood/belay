@@ -15,7 +15,7 @@ Look at the working directory. If it holds no source files, this is a fresh star
 1. Ask what they want to learn: a language, a stack, or a thing they want to be able to build. One question.
 2. Ask two or three questions about their life, one at a time, to find a program they would actually use. Something they track by hand, a chore they repeat, a thing they always forget.
 3. Propose three projects, all real, each sized to a few weeks of evenings, each labeled with the skills it teaches in the order it meets them. Number them and ask them to pick one. No more than three sentences per project.
-4. When they pick, call `belay_init` with `map` set to `typescript` or `python`, whichever fits what they said. Then say the map's first skill is writing a test, every skill starts unearned, and the first step begins now.
+4. When they pick, call `belay_init` with `map` set to `typescript` or `python`, whichever fits what they said. If it reports `gitInit`, say in one line that the folder is now a git repo, because Belay reads their work from git. Then say the map's first skill is writing a test, every skill starts unearned, and the first step begins now.
 5. Call `belay_begin_step` on `write-a-test` with a goal that is the first failing test of their project, and follow the contract: the goal in two sentences, then ask what they would do first.
 
 Belay supports TypeScript, JavaScript, and Python in version one. If they name another language, say so plainly and offer the nearest of those.

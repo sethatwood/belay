@@ -23,13 +23,22 @@ export function configPath(): string {
   return join(homeBelayDir(), "config.json");
 }
 
+// The home directory is never a repo root. It holds ~/.belay, the private
+// side, and sometimes a .git for dotfiles, and neither makes it a project.
+export function isHomeDir(dir: string): boolean {
+  const at = resolve(dir);
+  return at === homeRoot() || at === resolve(homedir());
+}
+
 // Walk up from the hook's cwd, or from this process's, to the first directory
-// that holds a .belay or a .git. When neither turns up, the starting directory
-// is the answer, which keeps every caller working on a plain folder.
+// that holds a .belay or a .git, stopping below the home directory. When
+// neither turns up, the starting directory is the answer, which keeps every
+// caller working on a plain folder.
 export function findRepoRoot(start?: string): string {
   const from = resolve(start !== undefined && start.length > 0 ? start : process.cwd());
   let dir = from;
   for (;;) {
+    if (isHomeDir(dir)) return from;
     if (existsSync(join(dir, ".belay")) || existsSync(join(dir, ".git"))) return dir;
     const parent = dirname(dir);
     if (parent === dir) return from;

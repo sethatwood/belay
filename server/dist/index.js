@@ -21456,10 +21456,15 @@ function homeBelayDir() {
 function configPath() {
   return join(homeBelayDir(), "config.json");
 }
+function isHomeDir(dir) {
+  const at = resolve(dir);
+  return at === homeRoot() || at === resolve(homedir());
+}
 function findRepoRoot(start) {
   const from = resolve(start !== void 0 && start.length > 0 ? start : process.cwd());
   let dir = from;
   for (; ; ) {
+    if (isHomeDir(dir)) return from;
     if (existsSync(join(dir, ".belay")) || existsSync(join(dir, ".git"))) return dir;
     const parent = dirname(dir);
     if (parent === dir) return from;
@@ -21955,19 +21960,20 @@ function newId() {
 import { createHash as createHash2 } from "node:crypto";
 import { existsSync as existsSync5, readFileSync as readFileSync5, statSync } from "node:fs";
 import { join as join2 } from "node:path";
+var DEPENDENCY_DIRS = /* @__PURE__ */ new Set(["node_modules", ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache"]);
+function paths(output) {
+  if (output === null) return [];
+  return output.split("\0").filter((p) => p.length > 0);
+}
 function changedPaths(root, baseline) {
   const found = /* @__PURE__ */ new Set();
   if (baseline !== null && baseline.length > 0) {
-    const tracked = git(root, ["diff", "--name-only", baseline, "--"]);
-    if (tracked !== null) {
-      for (const line of tracked.split("\n")) if (line.trim().length > 0) found.add(line.trim());
-    }
+    for (const p of paths(git(root, ["diff", "--name-only", "-z", baseline, "--"]))) found.add(p);
   }
-  const untracked = git(root, ["ls-files", "--others", "--exclude-standard"]);
-  if (untracked !== null) {
-    for (const line of untracked.split("\n")) if (line.trim().length > 0) found.add(line.trim());
-  }
-  return [...found].filter((p) => !p.startsWith(".belay/"));
+  for (const p of paths(git(root, ["ls-files", "--others", "--exclude-standard", "-z"]))) found.add(p);
+  return [...found].filter(
+    (p) => !p.startsWith(".belay/") && !p.split("/").some((part) => DEPENDENCY_DIRS.has(part))
+  );
 }
 function hashOf(root, path) {
   const full = join2(root, path);
@@ -21984,6 +21990,7 @@ function snapshot(root, baseline) {
 var HINT_KINDS = ["concept", "repo", "pseudocode"];
 function context(cwd) {
   const root = findRepoRoot(cwd);
+  if (isHomeDir(root)) throw new Error("Belay does not run in the home directory; open a project folder");
   const skillMap = read(root);
   if (skillMap === null) throw new Error("this repo has no .belay/map.json");
   return { root, handle: readHandle(root), map: skillMap };
@@ -22217,7 +22224,11 @@ function belayEndStep(reason, cwd) {
   return { ok: true, closed: true, skill };
 }
 var STYLE_SETTING = "belay:Belay";
-var IGNORE_LINE = ".belay/state.json";
+var IGNORE_LINES = [".belay/state.json", ".belay/*.tmp"];
+var INSTALL_IGNORES = {
+  typescript: ["node_modules/"],
+  python: [".venv/", "__pycache__/", ".pytest_cache/", ".mypy_cache/"]
+};
 function mergedSettings(root) {
   const path = join3(root, ".claude", "settings.json");
   let settings = {};
@@ -22234,22 +22245,32 @@ function mergedSettings(root) {
   }
   return { ...settings, outputStyle: STYLE_SETTING };
 }
-function ignoreState(root) {
+function ignoreKey(line) {
+  return line.trim().replace(/^\/+/, "").replace(/\/+$/, "");
+}
+function ignoreLines(root, lines) {
   const path = join3(root, ".gitignore");
-  if (!existsSync6(path)) {
-    writeFileSync3(path, `${IGNORE_LINE}
-`, "utf8");
-    return true;
-  }
-  const body = readFileSync6(path, "utf8");
-  if (body.split("\n").some((line) => line.trim() === IGNORE_LINE)) return false;
+  const body = existsSync6(path) ? readFileSync6(path, "utf8") : "";
+  const have = new Set(body.split("\n").map(ignoreKey));
+  const missing = lines.filter((line) => !have.has(ignoreKey(line)));
+  if (missing.length === 0) return false;
   const lead = body.length === 0 || body.endsWith("\n") ? "" : "\n";
-  appendFileSync3(path, `${lead}${IGNORE_LINE}
+  appendFileSync3(path, `${lead}${missing.join("\n")}
 `, "utf8");
+  return true;
+}
+function ensureRepo(root) {
+  if (git(root, ["rev-parse", "--is-inside-work-tree"]) === "true") return false;
+  if (git(root, ["init", "-q"]) === null) {
+    throw new Error("git init failed here, and Belay needs git to see what changed; install git and run this again");
+  }
   return true;
 }
 function belayInit(name, precedents, cwd) {
   const root = findRepoRoot(cwd);
+  if (isHomeDir(root)) {
+    throw new Error("Belay sets up a project folder, not the home directory; make a folder for the project and start there");
+  }
   const starter2 = starter(name);
   if (starter2 === null) {
     throw new Error(`no starter map named ${name}; the maps are ${names().join(" and ")}`);
@@ -22269,6 +22290,7 @@ function belayInit(name, precedents, cwd) {
     }
   }
   const settings = mergedSettings(root);
+  const initialized = ensureRepo(root);
   const wrote = [];
   mkdirSync5(belayDir(root), { recursive: true });
   writeFileSync3(mapPath(root), `${JSON.stringify(starter2, null, 2)}
@@ -22278,12 +22300,13 @@ function belayInit(name, precedents, cwd) {
   writeFileSync3(join3(root, ".claude", "settings.json"), `${JSON.stringify(settings, null, 2)}
 `, "utf8");
   wrote.push(".claude/settings.json");
-  if (ignoreState(root)) wrote.push(".gitignore");
+  if (ignoreLines(root, [...IGNORE_LINES, ...INSTALL_IGNORES[name] ?? []])) wrote.push(".gitignore");
   return {
     map: name,
     skills: starter2.skills.map((s) => s.id),
     outputStyle: STYLE_SETTING,
     wrote,
+    gitInit: initialized,
     unknownPrecedents
   };
 }

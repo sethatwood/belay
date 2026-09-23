@@ -21,10 +21,15 @@ function homeBelayDir() {
 function configPath() {
   return join(homeBelayDir(), "config.json");
 }
+function isHomeDir(dir) {
+  const at = resolve(dir);
+  return at === homeRoot() || at === resolve(homedir());
+}
 function findRepoRoot(start) {
   const from = resolve(start !== void 0 && start.length > 0 ? start : process.cwd());
   let dir = from;
   for (; ; ) {
+    if (isHomeDir(dir)) return from;
     if (existsSync(join(dir, ".belay")) || existsSync(join(dir, ".git"))) return dir;
     const parent = dirname(dir);
     if (parent === dir) return from;
@@ -379,19 +384,20 @@ function passed(response) {
 import { createHash } from "node:crypto";
 import { existsSync as existsSync5, readFileSync as readFileSync5, statSync } from "node:fs";
 import { join as join2 } from "node:path";
+var DEPENDENCY_DIRS = /* @__PURE__ */ new Set(["node_modules", ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache"]);
+function paths(output) {
+  if (output === null) return [];
+  return output.split("\0").filter((p) => p.length > 0);
+}
 function changedPaths(root, baseline) {
   const found = /* @__PURE__ */ new Set();
   if (baseline !== null && baseline.length > 0) {
-    const tracked = git(root, ["diff", "--name-only", baseline, "--"]);
-    if (tracked !== null) {
-      for (const line of tracked.split("\n")) if (line.trim().length > 0) found.add(line.trim());
-    }
+    for (const p of paths(git(root, ["diff", "--name-only", "-z", baseline, "--"]))) found.add(p);
   }
-  const untracked = git(root, ["ls-files", "--others", "--exclude-standard"]);
-  if (untracked !== null) {
-    for (const line of untracked.split("\n")) if (line.trim().length > 0) found.add(line.trim());
-  }
-  return [...found].filter((p) => !p.startsWith(".belay/"));
+  for (const p of paths(git(root, ["ls-files", "--others", "--exclude-standard", "-z"]))) found.add(p);
+  return [...found].filter(
+    (p) => !p.startsWith(".belay/") && !p.split("/").some((part) => DEPENDENCY_DIRS.has(part))
+  );
 }
 function hashOf(root, path) {
   const full = join2(root, path);

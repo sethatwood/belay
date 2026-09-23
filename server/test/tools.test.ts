@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   belayAnswer,
@@ -19,7 +19,7 @@ import * as maps from "../src/lib/maps.js";
 import { attribute, gate, stop, witness } from "../src/lib/handlers.js";
 import { read as readState } from "../src/lib/state.js";
 import { journalPath, logbookPath, nowIso } from "../src/lib/paths.js";
-import { VITEST_PASS, makeBare, makeRepo, rec, unaidedEntry, writeFile } from "./helpers.js";
+import { VITEST_PASS, makeBare, makeRepo, rec, runGit, unaidedEntry, writeFile } from "./helpers.js";
 
 function lines(root: string, handle: string): Record<string, unknown>[] {
   const path = logbookPath(root, handle);
@@ -51,7 +51,9 @@ test("belay_map reports each skill's state, runs, and streak, and counts malform
 test("belay_map refuses plainly in a repo with no map", () => {
   const f = makeRepo();
   try {
-    assert.throws(() => belayMap(join(f.base, "home")), /no .belay\/map.json/);
+    const elsewhere = join(f.base, "elsewhere");
+    mkdirSync(elsewhere, { recursive: true });
+    assert.throws(() => belayMap(elsewhere), /no .belay\/map.json/);
   } finally {
     f.cleanup();
   }
@@ -504,6 +506,8 @@ test("belay_init sets a fresh directory up", () => {
     const result = rec(belayInit("python", undefined, f.root));
     assert.deepEqual(result.wrote, [".belay/map.json", ".claude/settings.json", ".gitignore"]);
     assert.deepEqual(result.unknownPrecedents, []);
+    assert.equal(result.gitInit, true);
+    assert.ok(existsSync(join(f.root, ".git")), "a folder with no repo gets one");
 
     const written = readJson(join(f.root, ".belay/map.json"));
     assert.equal(written.threshold, 3);
@@ -512,7 +516,10 @@ test("belay_init sets a fresh directory up", () => {
     assert.equal(skillsOf(written)[0].id, "write-a-test");
 
     assert.deepEqual(readJson(join(f.root, ".claude/settings.json")), { outputStyle: "belay:Belay" });
-    assert.equal(readFileSync(join(f.root, ".gitignore"), "utf8"), ".belay/state.json\n");
+    assert.equal(
+      readFileSync(join(f.root, ".gitignore"), "utf8"),
+      ".belay/state.json\n.belay/*.tmp\n.venv/\n__pycache__/\n.pytest_cache/\n.mypy_cache/\n",
+    );
   } finally {
     f.cleanup();
   }
@@ -539,24 +546,24 @@ test("belay_init keeps every other key in an existing settings file, indented wi
   }
 });
 
-test("belay_init appends the ignore line, with the newline the file was missing", () => {
+test("belay_init appends the missing ignore lines, with the newline the file was missing", () => {
   const f = makeBare();
   try {
-    writeFile(f.root, ".gitignore", "node_modules/");
+    writeFile(f.root, ".gitignore", "/node_modules");
     const result = rec(belayInit("typescript", undefined, f.root));
-    assert.equal(readFileSync(join(f.root, ".gitignore"), "utf8"), "node_modules/\n.belay/state.json\n");
+    assert.equal(readFileSync(join(f.root, ".gitignore"), "utf8"), "/node_modules\n.belay/state.json\n.belay/*.tmp\n");
     assert.ok((result.wrote as string[]).includes(".gitignore"));
   } finally {
     f.cleanup();
   }
 });
 
-test("belay_init leaves a .gitignore that already ignores the state alone", () => {
+test("belay_init leaves a .gitignore that already ignores everything alone", () => {
   const f = makeBare();
   try {
-    writeFile(f.root, ".gitignore", "node_modules/\n.belay/state.json\n");
+    writeFile(f.root, ".gitignore", "node_modules/\n.belay/state.json\n.belay/*.tmp\n");
     const result = rec(belayInit("typescript", undefined, f.root));
-    assert.equal(readFileSync(join(f.root, ".gitignore"), "utf8"), "node_modules/\n.belay/state.json\n");
+    assert.equal(readFileSync(join(f.root, ".gitignore"), "utf8"), "node_modules/\n.belay/state.json\n.belay/*.tmp\n");
     assert.equal((result.wrote as string[]).includes(".gitignore"), false);
   } finally {
     f.cleanup();
@@ -652,6 +659,74 @@ test("belay_calibrate names a skill that is not in the map", () => {
   const f = makeRepo();
   try {
     assert.throws(() => belayCalibrate("not-a-skill", true, "note", f.root), /no skill not-a-skill/);
+  } finally {
+    f.cleanup();
+  }
+});
+
+// A person who has used Belay once has ~/.belay. A new project folder under
+// the home directory, with no repo yet, is where /belay:learn starts.
+function homeWithProject(): { home: string; project: string; cleanup: () => void } {
+  const f = makeBare();
+  const home = process.env.BELAY_HOME as string;
+  writeFile(home, ".belay/config.json", `${JSON.stringify({ handle: "sam" }, null, 2)}\n`);
+  const project = join(home, "projects", "habit-tracker");
+  mkdirSync(project, { recursive: true });
+  return { home, project, cleanup: f.cleanup };
+}
+
+test("belay_init in a new folder under the home directory sets up the folder, never the home directory", () => {
+  const h = homeWithProject();
+  try {
+    const result = rec(belayInit("python", undefined, h.project));
+    assert.equal(result.gitInit, true);
+    assert.ok(existsSync(join(h.project, ".belay/map.json")));
+    assert.ok(existsSync(join(h.project, ".claude/settings.json")));
+    assert.equal(existsSync(join(h.home, ".belay/map.json")), false);
+    assert.equal(existsSync(join(h.home, ".claude/settings.json")), false);
+    assert.equal(existsSync(join(h.home, ".gitignore")), false);
+  } finally {
+    h.cleanup();
+  }
+});
+
+test("belay_init refuses the home directory itself, even when it is a git repo", () => {
+  const h = homeWithProject();
+  try {
+    runGit(h.home, ["init", "-q"]);
+    assert.throws(() => belayInit("typescript", undefined, h.home), /not the home directory/);
+    assert.equal(existsSync(join(h.home, ".belay/map.json")), false);
+    assert.equal(existsSync(join(h.home, ".claude/settings.json")), false);
+  } finally {
+    h.cleanup();
+  }
+});
+
+test("a fresh folder set up by belay_init records a pending run on the first passing witness", () => {
+  const h = homeWithProject();
+  try {
+    belayInit("python", undefined, h.project);
+    belayBeginStep("write-a-test", "the first failing test", false, h.project);
+    writeFile(h.project, "test_habits.py", "def test_streak():\n    assert True\n");
+    witness({ cwd: h.project, tool_input: { command: "python -m pytest" }, tool_response: { stdout: "1 passed in 0.01s", stderr: "" } });
+    assert.deepEqual(readState(h.project).step?.pending?.files, ["test_habits.py"]);
+  } finally {
+    h.cleanup();
+  }
+});
+
+test("packages installed during a step never count as the person's files", () => {
+  const f = makeRepo();
+  try {
+    writeFile(f.root, ".gitignore", ".belay/state.json\n");
+    runGit(f.root, ["add", "-A"]);
+    runGit(f.root, ["commit", "-q", "-m", "forget node_modules"]);
+    belayBeginStep("write-a-test", "a first test", false, f.root);
+    for (let i = 0; i < 40; i += 1) writeFile(f.root, `node_modules/pkg${i}/index.js`, "x");
+    writeFile(f.root, ".venv/lib/site.py", "x");
+    writeFile(f.root, "src/café notes.test.ts", "test('x', () => {})\n");
+    witness({ cwd: f.root, tool_input: { command: "npx vitest run" }, tool_response: VITEST_PASS });
+    assert.deepEqual(readState(f.root).step?.pending?.files, ["src/café notes.test.ts"]);
   } finally {
     f.cleanup();
   }

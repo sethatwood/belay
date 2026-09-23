@@ -9,21 +9,27 @@ import { git } from "./paths.js";
 
 export type Snapshot = Record<string, string>;
 
+// Installed packages are never anyone's work. A repo that forgot to ignore
+// them would otherwise put thousands of paths into one unaided run.
+const DEPENDENCY_DIRS = new Set(["node_modules", ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache"]);
+
+function paths(output: string | null): string[] {
+  if (output === null) return [];
+  return output.split("\0").filter((p) => p.length > 0);
+}
+
 // Every tracked file that differs from the baseline commit plus every
-// untracked file, minus Belay's own directory.
+// untracked file, minus Belay's own directory and installed packages. The -z
+// output keeps names with spaces or accents exactly as they are on disk.
 export function changedPaths(root: string, baseline: string | null): string[] {
   const found = new Set<string>();
   if (baseline !== null && baseline.length > 0) {
-    const tracked = git(root, ["diff", "--name-only", baseline, "--"]);
-    if (tracked !== null) {
-      for (const line of tracked.split("\n")) if (line.trim().length > 0) found.add(line.trim());
-    }
+    for (const p of paths(git(root, ["diff", "--name-only", "-z", baseline, "--"]))) found.add(p);
   }
-  const untracked = git(root, ["ls-files", "--others", "--exclude-standard"]);
-  if (untracked !== null) {
-    for (const line of untracked.split("\n")) if (line.trim().length > 0) found.add(line.trim());
-  }
-  return [...found].filter((p) => !p.startsWith(".belay/"));
+  for (const p of paths(git(root, ["ls-files", "--others", "--exclude-standard", "-z"]))) found.add(p);
+  return [...found].filter(
+    (p) => !p.startsWith(".belay/") && !p.split("/").some((part) => DEPENDENCY_DIRS.has(part)),
+  );
 }
 
 function hashOf(root: string, path: string): string {

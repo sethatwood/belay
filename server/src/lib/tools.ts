@@ -9,7 +9,7 @@ import * as logbook from "./logbook.js";
 import * as map from "./map.js";
 import * as maps from "./maps.js";
 import * as stateFile from "./state.js";
-import { belayDir, findRepoRoot, git, mapPath, nowIso, readHandle } from "./paths.js";
+import { belayDir, findRepoRoot, git, isHomeDir, mapPath, nowIso, readHandle } from "./paths.js";
 import { snapshot } from "./tree.js";
 
 const HINT_KINDS = ["concept", "repo", "pseudocode"] as const;
@@ -22,6 +22,7 @@ interface Ctx {
 
 function context(cwd?: string): Ctx {
   const root = findRepoRoot(cwd);
+  if (isHomeDir(root)) throw new Error("Belay does not run in the home directory; open a project folder");
   const skillMap = map.read(root);
   if (skillMap === null) throw new Error("this repo has no .belay/map.json");
   return { root, handle: readHandle(root), map: skillMap };
@@ -288,7 +289,13 @@ export function belayEndStep(reason: string, cwd?: string): unknown {
 }
 
 const STYLE_SETTING = "belay:Belay";
-const IGNORE_LINE = ".belay/state.json";
+// The step file and its write-in-progress copies, then what each language
+// installs into the project folder.
+const IGNORE_LINES = [".belay/state.json", ".belay/*.tmp"];
+const INSTALL_IGNORES: Record<string, string[]> = {
+  typescript: ["node_modules/"],
+  python: [".venv/", "__pycache__/", ".pytest_cache/", ".mypy_cache/"],
+};
 
 // The merged settings object, ready to write. Every other key survives, and a
 // settings file that will not parse stops the whole of belay_init rather than
@@ -310,23 +317,40 @@ function mergedSettings(root: string): Record<string, unknown> {
   return { ...settings, outputStyle: STYLE_SETTING };
 }
 
-// True when the line had to be added. A file that does not end in a newline
-// gets one first, so the line never lands on the end of somebody else's.
-function ignoreState(root: string): boolean {
+// Two spellings of one pattern, /node_modules and node_modules/, count as the
+// same line.
+function ignoreKey(line: string): string {
+  return line.trim().replace(/^\/+/, "").replace(/\/+$/, "");
+}
+
+// True when a line had to be added. A file that does not end in a newline
+// gets one first, so a line never lands on the end of somebody else's.
+function ignoreLines(root: string, lines: string[]): boolean {
   const path = join(root, ".gitignore");
-  if (!existsSync(path)) {
-    writeFileSync(path, `${IGNORE_LINE}\n`, "utf8");
-    return true;
-  }
-  const body = readFileSync(path, "utf8");
-  if (body.split("\n").some((line) => line.trim() === IGNORE_LINE)) return false;
+  const body = existsSync(path) ? readFileSync(path, "utf8") : "";
+  const have = new Set(body.split("\n").map(ignoreKey));
+  const missing = lines.filter((line) => !have.has(ignoreKey(line)));
+  if (missing.length === 0) return false;
   const lead = body.length === 0 || body.endsWith("\n") ? "" : "\n";
-  appendFileSync(path, `${lead}${IGNORE_LINE}\n`, "utf8");
+  appendFileSync(path, `${lead}${missing.join("\n")}\n`, "utf8");
+  return true;
+}
+
+// Belay reads the person's work from git, so a folder with no repo gets one.
+// True when this call ran git init.
+function ensureRepo(root: string): boolean {
+  if (git(root, ["rev-parse", "--is-inside-work-tree"]) === "true") return false;
+  if (git(root, ["init", "-q"]) === null) {
+    throw new Error("git init failed here, and Belay needs git to see what changed; install git and run this again");
+  }
   return true;
 }
 
 export function belayInit(name: string, precedents?: Record<string, string[]>, cwd?: string): unknown {
   const root = findRepoRoot(cwd);
+  if (isHomeDir(root)) {
+    throw new Error("Belay sets up a project folder, not the home directory; make a folder for the project and start there");
+  }
   const starter = maps.starter(name);
   if (starter === null) {
     throw new Error(`no starter map named ${name}; the maps are ${maps.names().join(" and ")}`);
@@ -350,6 +374,7 @@ export function belayInit(name: string, precedents?: Record<string, string[]>, c
   // Read and merge before writing anything, so a settings file that will not
   // parse leaves the repo as it was.
   const settings = mergedSettings(root);
+  const initialized = ensureRepo(root);
 
   const wrote: string[] = [];
   mkdirSync(belayDir(root), { recursive: true });
@@ -360,13 +385,14 @@ export function belayInit(name: string, precedents?: Record<string, string[]>, c
   writeFileSync(join(root, ".claude", "settings.json"), `${JSON.stringify(settings, null, 2)}\n`, "utf8");
   wrote.push(".claude/settings.json");
 
-  if (ignoreState(root)) wrote.push(".gitignore");
+  if (ignoreLines(root, [...IGNORE_LINES, ...(INSTALL_IGNORES[name] ?? [])])) wrote.push(".gitignore");
 
   return {
     map: name,
     skills: starter.skills.map((s) => s.id),
     outputStyle: STYLE_SETTING,
     wrote,
+    gitInit: initialized,
     unknownPrecedents,
   };
 }

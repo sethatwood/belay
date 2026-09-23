@@ -8,6 +8,7 @@ import {
   configPath,
   findRepoRoot,
   homeBelayDir,
+  isHomeDir,
   journalPath,
   logbookPath,
   readHandle,
@@ -76,6 +77,22 @@ test("the journal lives under the home directory, never in the repo", () => {
     const line = JSON.parse(readFileSync(path, "utf8").trim());
     assert.deepEqual(line, { t: "2026-10-04T14:01:00Z", kind: "hint", skill: "add-route", rung: 1, note: "raw body" });
     assert.equal(existsSync(join(f.root, ".belay", "journal")), false);
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("the home directory is never the repo root, whatever it holds", () => {
+  const f = makeRepo();
+  try {
+    const project = join(f.home, "projects", "new-thing");
+    mkdirSync(project, { recursive: true });
+    assert.ok(existsSync(homeBelayDir()), "the private side exists after first use");
+    assert.equal(findRepoRoot(project), project);
+    runGit(f.home, ["init", "-q"]);
+    assert.equal(findRepoRoot(project), project, "a dotfiles repo in home does not count either");
+    assert.equal(isHomeDir(f.home), true);
+    assert.equal(isHomeDir(project), false);
   } finally {
     f.cleanup();
   }
