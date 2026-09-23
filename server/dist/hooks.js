@@ -18,6 +18,7 @@ function homeRoot() {
 function homeBelayDir() {
   return join(homeRoot(), ".belay");
 }
+var STYLE_SETTING = "belay:Belay";
 function configPath() {
   return join(homeBelayDir(), "config.json");
 }
@@ -886,7 +887,8 @@ function changedSince(root, baseline, snap) {
 }
 
 // src/lib/handlers.ts
-import { relative, isAbsolute } from "node:path";
+import { existsSync as existsSync6, readFileSync as readFileSync6 } from "node:fs";
+import { isAbsolute, join as join4, relative } from "node:path";
 var EDIT_TOOLS = /* @__PURE__ */ new Set(["Edit", "Write", "MultiEdit", "NotebookEdit"]);
 function str(value) {
   return typeof value === "string" ? value : "";
@@ -900,25 +902,61 @@ function rootOf(input) {
 function context(event, additionalContext) {
   return { hookSpecificOutput: { hookEventName: event, additionalContext } };
 }
+function settingsObject(path) {
+  if (!existsSync6(path)) return null;
+  try {
+    const raw = JSON.parse(readFileSync6(path, "utf8"));
+    return raw !== null && typeof raw === "object" && !Array.isArray(raw) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+function styleInEffect(root) {
+  const sources = [
+    [join4(root, ".claude", "settings.local.json"), ".claude/settings.local.json"],
+    [join4(root, ".claude", "settings.json"), ".claude/settings.json"],
+    [join4(homeRoot(), ".claude", "settings.json"), "~/.claude/settings.json"]
+  ];
+  for (const [path, from] of sources) {
+    const style = settingsObject(path)?.outputStyle;
+    if (typeof style === "string") return { style, from };
+  }
+  return { style: null, from: "" };
+}
+function styleWarning(root) {
+  const { style, from } = styleInEffect(root);
+  if (style === STYLE_SETTING) return null;
+  if (style === null) {
+    return `Nothing turns Belay's output style on in this repo, so the coaching contract is off. Tell the person, and offer to add "outputStyle": "${STYLE_SETTING}" to .claude/settings.json.`;
+  }
+  return `${from} sets outputStyle to ${style}, which overrides ${STYLE_SETTING}, so the coaching contract is off in this repo. Tell the person, and offer to change that line to ${STYLE_SETTING} or remove it.`;
+}
+function homeWarning() {
+  if (!existsSync6(join4(homeBelayDir(), "map.json"))) return null;
+  return `An earlier Belay version set itself up in the home directory by mistake: ~/.belay/map.json should not exist. Tell the person, and offer to remove ~/.belay/map.json, ~/.belay/state.json, and ~/.belay/logbook if they are there, the "outputStyle": "${STYLE_SETTING}" line in ~/.claude/settings.json, and the .belay/state.json line in ~/.gitignore. The config and the journal under ~/.belay stay.`;
+}
 function sessionStart(input) {
   const root = rootOf(input);
   const skillMap = read(root);
+  const lines = [];
   if (skillMap === null) {
-    return context(
-      "SessionStart",
-      "Belay is installed and this repo has no map. Offer /belay:learn to learn something, or /belay:team to set up a team map."
+    lines.push("Belay is installed and this repo has no map. Offer /belay:learn to learn something, or /belay:team to set up a team map.");
+  } else {
+    const handle = readHandle(root);
+    const { entries } = read2(root, handle);
+    const counts = { unearned: 0, earned: 0, mastered: 0 };
+    for (const skill of skillMap.skills) {
+      counts[derive(entries, skill.id, skillMap).state] += 1;
+    }
+    lines.push(
+      `Belay is active in this repo. The handle is ${handle}. Skills: ${counts.unearned} unearned, ${counts.earned} earned, ${counts.mastered} mastered. Call belay_begin_step before each step of work.`
     );
+    const style = styleWarning(root);
+    if (style !== null) lines.push(style);
   }
-  const handle = readHandle(root);
-  const { entries } = read2(root, handle);
-  const counts = { unearned: 0, earned: 0, mastered: 0 };
-  for (const skill of skillMap.skills) {
-    counts[derive(entries, skill.id, skillMap).state] += 1;
-  }
-  return context(
-    "SessionStart",
-    `Belay is active in this repo. The handle is ${handle}. Skills: ${counts.unearned} unearned, ${counts.earned} earned, ${counts.mastered} mastered. Call belay_begin_step before each step of work.`
-  );
+  const home = homeWarning();
+  if (home !== null) lines.push(home);
+  return context("SessionStart", lines.join("\n"));
 }
 function prompt(input) {
   const root = rootOf(input);

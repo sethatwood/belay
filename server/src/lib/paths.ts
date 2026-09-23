@@ -19,6 +19,10 @@ export function homeBelayDir(): string {
   return join(homeRoot(), ".belay");
 }
 
+// The output style setting that turns the coaching contract on. A plugin's
+// style is named with the plugin's name in front.
+export const STYLE_SETTING = "belay:Belay";
+
 export function configPath(): string {
   return join(homeBelayDir(), "config.json");
 }

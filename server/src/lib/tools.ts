@@ -9,7 +9,7 @@ import * as logbook from "./logbook.js";
 import * as map from "./map.js";
 import * as maps from "./maps.js";
 import * as stateFile from "./state.js";
-import { belayDir, findRepoRoot, git, isHomeDir, mapPath, nowIso, projectDir, readHandle } from "./paths.js";
+import { STYLE_SETTING, belayDir, findRepoRoot, git, isHomeDir, mapPath, nowIso, projectDir, readHandle } from "./paths.js";
 import { snapshot } from "./tree.js";
 
 const HINT_KINDS = ["concept", "repo", "pseudocode"] as const;
@@ -299,7 +299,6 @@ export function belayEndStep(reason: string, cwd?: string): unknown {
   });
 }
 
-const STYLE_SETTING = "belay:Belay";
 // The step file and its write-in-progress copies, then what each language
 // installs into the project folder.
 const IGNORE_LINES = [".belay/state.json", ".belay/*.tmp"];

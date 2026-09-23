@@ -110,6 +110,7 @@ export function makeRepo(options: { logbook?: unknown[]; map?: unknown; handle?:
   writeFile(root, ".gitignore", ".belay/state.json\nnode_modules/\n");
   writeFile(root, "src/billing/charge.ts", "export const charge = () => true;\n");
   writeFile(root, ".belay/map.json", `${JSON.stringify(options.map ?? TEST_MAP, null, 2)}\n`);
+  writeFile(root, ".claude/settings.json", `${JSON.stringify({ outputStyle: "belay:Belay" }, null, 2)}\n`);
 
   const handle = options.handle ?? "test-person";
   writeFile(home, ".belay/config.json", `${JSON.stringify({ handle }, null, 2)}\n`);

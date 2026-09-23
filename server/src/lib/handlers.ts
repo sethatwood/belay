@@ -5,11 +5,12 @@
 import * as logbook from "./logbook.js";
 import * as map from "./map.js";
 import * as stateFile from "./state.js";
-import { findRepoRoot, git, nowIso, projectDir, readHandle } from "./paths.js";
+import { STYLE_SETTING, findRepoRoot, git, homeBelayDir, homeRoot, nowIso, projectDir, readHandle } from "./paths.js";
 import { passed, recognizeAll } from "./witness.js";
 import { changedSince } from "./tree.js";
 import { writePattern } from "./writes.js";
-import { relative, isAbsolute } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { isAbsolute, join, relative } from "node:path";
 
 export type HookInput = Record<string, unknown>;
 export type HookOutput = Record<string, unknown> | null;
@@ -33,25 +34,70 @@ function context(event: string, additionalContext: string): HookOutput {
   return { hookSpecificOutput: { hookEventName: event, additionalContext } };
 }
 
+function settingsObject(path: string): Record<string, unknown> | null {
+  if (!existsSync(path)) return null;
+  try {
+    const raw: unknown = JSON.parse(readFileSync(path, "utf8"));
+    return raw !== null && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+// The output style in effect, and the file it comes from. Claude Code reads
+// the local settings first, then the project's, then the person's own, so a
+// /output-style run once in this repo quietly outranks the committed setting.
+function styleInEffect(root: string): { style: string | null; from: string } {
+  const sources: [string, string][] = [
+    [join(root, ".claude", "settings.local.json"), ".claude/settings.local.json"],
+    [join(root, ".claude", "settings.json"), ".claude/settings.json"],
+    [join(homeRoot(), ".claude", "settings.json"), "~/.claude/settings.json"],
+  ];
+  for (const [path, from] of sources) {
+    const style = settingsObject(path)?.outputStyle;
+    if (typeof style === "string") return { style, from };
+  }
+  return { style: null, from: "" };
+}
+
+function styleWarning(root: string): string | null {
+  const { style, from } = styleInEffect(root);
+  if (style === STYLE_SETTING) return null;
+  if (style === null) {
+    return `Nothing turns Belay's output style on in this repo, so the coaching contract is off. Tell the person, and offer to add "outputStyle": "${STYLE_SETTING}" to .claude/settings.json.`;
+  }
+  return `${from} sets outputStyle to ${style}, which overrides ${STYLE_SETTING}, so the coaching contract is off in this repo. Tell the person, and offer to change that line to ${STYLE_SETTING} or remove it.`;
+}
+
+// Belay 0.1.0 could mistake the home directory for a repo and set itself up
+// there. Nothing belongs in ~/.belay but the config and the journal.
+function homeWarning(): string | null {
+  if (!existsSync(join(homeBelayDir(), "map.json"))) return null;
+  return `An earlier Belay version set itself up in the home directory by mistake: ~/.belay/map.json should not exist. Tell the person, and offer to remove ~/.belay/map.json, ~/.belay/state.json, and ~/.belay/logbook if they are there, the "outputStyle": "${STYLE_SETTING}" line in ~/.claude/settings.json, and the .belay/state.json line in ~/.gitignore. The config and the journal under ~/.belay stay.`;
+}
+
 export function sessionStart(input: HookInput): HookOutput {
   const root = rootOf(input);
   const skillMap = map.read(root);
+  const lines: string[] = [];
   if (skillMap === null) {
-    return context(
-      "SessionStart",
-      "Belay is installed and this repo has no map. Offer /belay:learn to learn something, or /belay:team to set up a team map.",
+    lines.push("Belay is installed and this repo has no map. Offer /belay:learn to learn something, or /belay:team to set up a team map.");
+  } else {
+    const handle = readHandle(root);
+    const { entries } = logbook.read(root, handle);
+    const counts = { unearned: 0, earned: 0, mastered: 0 };
+    for (const skill of skillMap.skills) {
+      counts[logbook.derive(entries, skill.id, skillMap).state] += 1;
+    }
+    lines.push(
+      `Belay is active in this repo. The handle is ${handle}. Skills: ${counts.unearned} unearned, ${counts.earned} earned, ${counts.mastered} mastered. Call belay_begin_step before each step of work.`,
     );
+    const style = styleWarning(root);
+    if (style !== null) lines.push(style);
   }
-  const handle = readHandle(root);
-  const { entries } = logbook.read(root, handle);
-  const counts = { unearned: 0, earned: 0, mastered: 0 };
-  for (const skill of skillMap.skills) {
-    counts[logbook.derive(entries, skill.id, skillMap).state] += 1;
-  }
-  return context(
-    "SessionStart",
-    `Belay is active in this repo. The handle is ${handle}. Skills: ${counts.unearned} unearned, ${counts.earned} earned, ${counts.mastered} mastered. Call belay_begin_step before each step of work.`,
-  );
+  const home = homeWarning();
+  if (home !== null) lines.push(home);
+  return context("SessionStart", lines.join("\n"));
 }
 
 export function prompt(input: HookInput): HookOutput {

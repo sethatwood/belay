@@ -32,6 +32,49 @@ test("session-start names the handle and counts the skills by state", () => {
   }
 });
 
+test("session-start with the style on says nothing more", () => {
+  const f = makeRepo();
+  try {
+    const text = String(ctx(sessionStart({ cwd: f.root, hook_event_name: "SessionStart" })).additionalContext);
+    assert.equal(text.split("\n").length, 1);
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("session-start says so when a local setting turns the style off", () => {
+  const f = makeRepo();
+  try {
+    writeFile(f.root, ".claude/settings.local.json", `${JSON.stringify({ outputStyle: "Explanatory" })}\n`);
+    const text = String(ctx(sessionStart({ cwd: f.root, hook_event_name: "SessionStart" })).additionalContext);
+    assert.match(text, /\.claude\/settings\.local\.json sets outputStyle to Explanatory, which overrides belay:Belay/);
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("session-start says so when nothing turns the style on", () => {
+  const f = makeRepo();
+  try {
+    writeFile(f.root, ".claude/settings.json", "{}\n");
+    const text = String(ctx(sessionStart({ cwd: f.root, hook_event_name: "SessionStart" })).additionalContext);
+    assert.match(text, /Nothing turns Belay's output style on in this repo/);
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("session-start flags a map left in the home directory by an earlier version", () => {
+  const f = makeRepo();
+  try {
+    writeFile(f.home, ".belay/map.json", "{}\n");
+    const text = String(ctx(sessionStart({ cwd: f.root, hook_event_name: "SessionStart" })).additionalContext);
+    assert.match(text, /set itself up in the home directory by mistake/);
+  } finally {
+    f.cleanup();
+  }
+});
+
 test("session-start in a repo with no map offers the two skills", () => {
   const f = makeRepo();
   try {

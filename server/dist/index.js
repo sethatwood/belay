@@ -21453,6 +21453,7 @@ function homeRoot() {
 function homeBelayDir() {
   return join(homeRoot(), ".belay");
 }
+var STYLE_SETTING = "belay:Belay";
 function configPath() {
   return join(homeBelayDir(), "config.json");
 }
@@ -22286,7 +22287,6 @@ function belayEndStep(reason, cwd) {
     return { ok: true, closed: true, skill };
   });
 }
-var STYLE_SETTING = "belay:Belay";
 var IGNORE_LINES = [".belay/state.json", ".belay/*.tmp"];
 var INSTALL_IGNORES = {
   typescript: ["node_modules/"],
