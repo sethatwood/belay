@@ -3,14 +3,14 @@
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh", "timeout": 10 }
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/session-start.sh", "timeout": 10 }
         ]
       }
     ],
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/prompt.sh", "timeout": 10 }
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/prompt.sh", "timeout": 10 }
         ]
       }
     ],
@@ -18,7 +18,7 @@
       {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/gate.sh", "timeout": 10 }
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/gate.sh", "timeout": 10 }
         ]
       }
     ],
@@ -26,13 +26,13 @@
       {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/attribute.sh", "timeout": 10 }
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/attribute.sh", "timeout": 10 }
         ]
       },
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/witness.sh", "timeout": 30 }
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/witness.sh", "timeout": 30 }
         ]
       }
     ],
@@ -40,14 +40,14 @@
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/witness.sh", "timeout": 30 }
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/witness.sh", "timeout": 30 }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stop.sh", "timeout": 10 }
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/stop.sh", "timeout": 10 }
         ]
       }
     ]

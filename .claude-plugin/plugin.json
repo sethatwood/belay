@@ -10,5 +10,11 @@
   "homepage": "https://belay.page",
   "repository": "https://github.com/sethatwood/belay",
   "license": "MIT",
-  "keywords": ["learning", "apprentice", "junior", "coaching", "skills", "hooks"]
+  "keywords": ["learning", "apprentice", "junior", "coaching", "skills", "hooks"],
+  "mcpServers": {
+    "belay": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/dist/index.js"]
+    }
+  }
 }
