@@ -147,9 +147,9 @@ With a map, it also reads `outputStyle` the way Claude Code does, from `.claude/
 In any repo, when `~/.belay/map.json` exists, it adds a line asking Claude to offer to remove what version 0.1.0 wrote when it mistook the home directory for a repo.
 
 **`prompt`** (UserPromptSubmit)
-Reads: `state.json`.
-Writes: clears `last` after showing it once.
-Returns: `additionalContext` with one line: the open step's skill, mode, hints, and witnesses so far, or "no step in progress", plus `last` if set.
+Reads: `.belay/map.json`, `state.json`.
+Writes: marks `last` shown after showing it once.
+Returns: nothing in a repo with no map. Otherwise `additionalContext` with one line: the open step's skill, mode, hints, and witnesses so far, or "no step in progress", plus `last` if it has not been shown.
 
 **`gate`** (PreToolUse on Edit, Write, MultiEdit, NotebookEdit, Bash)
 Reads: `state.json`.
