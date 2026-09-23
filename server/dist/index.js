@@ -21432,6 +21432,32 @@ var StdioServerTransport = class {
   }
 };
 
+// package.json
+var package_default = {
+  name: "belay-server",
+  version: "0.1.0",
+  private: true,
+  description: "The logbook and skill map behind Belay, served to Claude Code over MCP.",
+  type: "module",
+  scripts: {
+    build: "npm run build:server && npm run build:hooks",
+    check: "tsc --noEmit",
+    test: 'node --test --import tsx "test/**/*.test.ts"',
+    "build:server": 'esbuild --bundle --platform=node --target=node20 --format=esm --banner:js="#!/usr/bin/env node" src/index.ts --outfile=dist/index.js',
+    "build:hooks": 'esbuild --bundle --platform=node --target=node20 --format=esm --banner:js="#!/usr/bin/env node" src/hooks.ts --outfile=dist/hooks.js'
+  },
+  dependencies: {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    zod: "^3.24.0"
+  },
+  devDependencies: {
+    esbuild: "^0.25.0",
+    tsx: "^4.19.0",
+    typescript: "^5.6.0",
+    "@types/node": "^20.0.0"
+  }
+};
+
 // src/lib/tools.ts
 import { appendFileSync as appendFileSync3, existsSync as existsSync6, mkdirSync as mkdirSync5, readFileSync as readFileSync6, writeFileSync as writeFileSync3 } from "node:fs";
 import { join as join4 } from "node:path";
@@ -22401,7 +22427,7 @@ function belayCalibrate(skill, earned, note, cwd) {
 }
 
 // src/index.ts
-var server = new McpServer({ name: "belay", version: "0.1.0" });
+var server = new McpServer({ name: "belay", version: package_default.version });
 function ok(data) {
   return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
 }

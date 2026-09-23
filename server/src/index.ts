@@ -10,6 +10,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
+import pkg from "../package.json" with { type: "json" };
 import {
   belayAnswer,
   belayAsk,
@@ -28,7 +29,7 @@ import {
 //   .belay/state.json            the step in progress, gitignored
 //   ~/.belay/journal/<repo>/     private notes and hints, never committed
 
-const server = new McpServer({ name: "belay", version: "0.1.0" });
+const server = new McpServer({ name: "belay", version: pkg.version });
 
 type Result = {
   content: { type: "text"; text: string }[];

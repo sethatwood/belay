@@ -1,0 +1,45 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+      # Plugin install runs no build step, so the committed bundles are what
+      # every installer runs. They have to be the source, built.
+      - name: The committed bundles match the source
+        run: git diff --exit-code -- dist
+
+  bundles-on-node-20:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Every hook runs and exits 0
+        run: |
+          for hook in session-start prompt gate attribute witness stop; do
+            echo '{}' | node server/dist/hooks.js "$hook" > /dev/null
+          done
+      - name: The MCP server starts and answers initialize
+        run: |
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+            | timeout 10 node server/dist/index.js | grep -q '"name":"belay"'
