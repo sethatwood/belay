@@ -21512,7 +21512,7 @@ function readHandle(root) {
   if (existsSync(path)) {
     try {
       const cfg = JSON.parse(readFileSync(path, "utf8"));
-      if (typeof cfg.handle === "string" && cfg.handle.length > 0) return cfg.handle;
+      if (typeof cfg.handle === "string" && cfg.handle.length > 0) return slugify(cfg.handle);
     } catch {
     }
   }
@@ -22144,11 +22144,16 @@ function beginStep(ctx, state, skill, goal, followUp) {
 }
 function belayHint(skill, text, cwd) {
   const ctx = context(cwd);
-  return update(ctx.root, (state) => hint(ctx, state, text));
+  return update(ctx.root, (state) => hint(ctx, state, skill, text));
 }
-function hint(ctx, state, text) {
+function openStep(state, skill) {
   const step = state.step;
   if (step === null) throw new Error("no step in progress");
+  if (step.skill !== skill) throw new Error(`the open step is on ${step.skill}, not ${skill}`);
+  return step;
+}
+function hint(ctx, state, skill, text) {
+  const step = openStep(state, skill);
   if (step.mode !== "you") throw new Error(`hints are only given on a you step, and ${step.skill} is a ${step.mode} step`);
   step.hints += 1;
   const rung = Math.min(step.hints, 4);
@@ -22163,11 +22168,10 @@ function hint(ctx, state, text) {
 }
 function belayAsk(skill, question, expected, cwd) {
   const ctx = context(cwd);
-  return update(ctx.root, (state) => ask(ctx, state, question, expected));
+  return update(ctx.root, (state) => ask(ctx, state, skill, question, expected));
 }
-function ask(ctx, state, question, expected) {
-  const step = state.step;
-  if (step === null) throw new Error("no step in progress");
+function ask(ctx, state, skill, question, expected) {
+  const step = openStep(state, skill);
   if (step.mode === "you" && step.pending === null) {
     throw new Error("no witness is pending, so there is no unaided run to ask about yet");
   }
@@ -22177,11 +22181,10 @@ function ask(ctx, state, question, expected) {
 }
 function belayAnswer(skill, correct, answer, cwd) {
   const ctx = context(cwd);
-  return update(ctx.root, (state) => recordAnswer(ctx, state, correct, answer));
+  return update(ctx.root, (state) => recordAnswer(ctx, state, skill, correct, answer));
 }
-function recordAnswer(ctx, state, correct, answer) {
-  const step = state.step;
-  if (step === null) throw new Error("no step in progress");
+function recordAnswer(ctx, state, skill, correct, answer) {
+  const step = openStep(state, skill);
   const question = step.question;
   if (question === null) throw new Error("no question is stored, so call belay_ask first");
   write(ctx.root, { kind: "answer", skill: step.skill, mode: step.mode, correct, note: answer });

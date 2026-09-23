@@ -745,3 +745,16 @@ test("packages installed during a step never count as the person's files", () =>
     f.cleanup();
   }
 });
+
+test("hint, ask, and answer refuse a skill that is not the open step's", () => {
+  const f = makeRepo();
+  try {
+    belayBeginStep("verify-webhook-signature", "reject bad signatures", false, f.root);
+    assert.throws(() => belayHint("add-route", "the raw body", f.root), /open step is on verify-webhook-signature, not add-route/);
+    assert.throws(() => belayAsk("add-route", "q", "e", f.root), /not add-route/);
+    assert.throws(() => belayAnswer("add-route", true, "a", f.root), /not add-route/);
+    assert.equal(readState(f.root).step?.hints, 0, "nothing landed on the open step");
+  } finally {
+    f.cleanup();
+  }
+});

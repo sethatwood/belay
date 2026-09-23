@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   configPath,
@@ -93,6 +93,16 @@ test("the home directory is never the repo root, whatever it holds", () => {
     assert.equal(findRepoRoot(project), project, "a dotfiles repo in home does not count either");
     assert.equal(isHomeDir(f.home), true);
     assert.equal(isHomeDir(project), false);
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("a handle edited by hand still names a file inside the logbook directory", () => {
+  const f = makeRepo();
+  try {
+    writeFileSync(configPath(), `${JSON.stringify({ handle: "../../Sam Rivera" })}\n`);
+    assert.equal(readHandle(f.root), "sam-rivera");
   } finally {
     f.cleanup();
   }

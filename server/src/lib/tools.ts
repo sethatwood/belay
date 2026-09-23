@@ -131,12 +131,20 @@ function beginStep(ctx: Ctx, state: stateFile.State, skill: string, goal: string
 
 export function belayHint(skill: string, text: string, cwd?: string): unknown {
   const ctx = context(cwd);
-  return stateFile.update(ctx.root, (state) => hint(ctx, state, text));
+  return stateFile.update(ctx.root, (state) => hint(ctx, state, skill, text));
 }
 
-function hint(ctx: Ctx, state: stateFile.State, text: string): unknown {
+// The open step, checked against the skill Claude named, so a call meant for
+// another skill fails plainly instead of landing on this one.
+function openStep(state: stateFile.State, skill: string): stateFile.Step {
   const step = state.step;
   if (step === null) throw new Error("no step in progress");
+  if (step.skill !== skill) throw new Error(`the open step is on ${step.skill}, not ${skill}`);
+  return step;
+}
+
+function hint(ctx: Ctx, state: stateFile.State, skill: string, text: string): unknown {
+  const step = openStep(state, skill);
   if (step.mode !== "you") throw new Error(`hints are only given on a you step, and ${step.skill} is a ${step.mode} step`);
 
   step.hints += 1;
@@ -155,12 +163,11 @@ function hint(ctx: Ctx, state: stateFile.State, text: string): unknown {
 
 export function belayAsk(skill: string, question: string, expected: string, cwd?: string): unknown {
   const ctx = context(cwd);
-  return stateFile.update(ctx.root, (state) => ask(ctx, state, question, expected));
+  return stateFile.update(ctx.root, (state) => ask(ctx, state, skill, question, expected));
 }
 
-function ask(ctx: Ctx, state: stateFile.State, question: string, expected: string): unknown {
-  const step = state.step;
-  if (step === null) throw new Error("no step in progress");
+function ask(ctx: Ctx, state: stateFile.State, skill: string, question: string, expected: string): unknown {
+  const step = openStep(state, skill);
   if (step.mode === "you" && step.pending === null) {
     throw new Error("no witness is pending, so there is no unaided run to ask about yet");
   }
@@ -172,12 +179,11 @@ function ask(ctx: Ctx, state: stateFile.State, question: string, expected: strin
 
 export function belayAnswer(skill: string, correct: boolean, answer: string, cwd?: string): unknown {
   const ctx = context(cwd);
-  return stateFile.update(ctx.root, (state) => recordAnswer(ctx, state, correct, answer));
+  return stateFile.update(ctx.root, (state) => recordAnswer(ctx, state, skill, correct, answer));
 }
 
-function recordAnswer(ctx: Ctx, state: stateFile.State, correct: boolean, answer: string): unknown {
-  const step = state.step;
-  if (step === null) throw new Error("no step in progress");
+function recordAnswer(ctx: Ctx, state: stateFile.State, skill: string, correct: boolean, answer: string): unknown {
+  const step = openStep(state, skill);
   const question = step.question;
   if (question === null) throw new Error("no question is stored, so call belay_ask first");
 

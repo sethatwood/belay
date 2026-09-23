@@ -2,14 +2,18 @@
 // add-route under your handle, so add-route is earned on the first step you
 // take on it, and turns Belay's output style on for this folder.
 //
-// The handle rule matches the server: git user.name, lowercased, every run of
-// characters outside a-z0-9 becomes one dash, ends trimmed, "anonymous" if empty.
+// The handle rule matches the server: the handle in ~/.belay/config.json, or
+// else git user.name, put through the slug rule either way. Lowercased, every
+// run of characters outside a-z0-9 becomes one dash, ends trimmed,
+// "anonymous" if empty.
 
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = new URL(".", import.meta.url).pathname;
+const root = fileURLToPath(new URL(".", import.meta.url));
 
 function gitName() {
   try {
@@ -24,7 +28,7 @@ function slugify(name) {
   return slug.length > 0 ? slug : "anonymous";
 }
 
-const configPath = join(process.env.BELAY_HOME ?? process.env.HOME ?? "", ".belay", "config.json");
+const configPath = join(process.env.BELAY_HOME || homedir(), ".belay", "config.json");
 let handle = null;
 if (existsSync(configPath)) {
   try {
@@ -33,7 +37,7 @@ if (existsSync(configPath)) {
     handle = null;
   }
 }
-if (typeof handle !== "string" || handle.length === 0) handle = slugify(gitName());
+handle = typeof handle === "string" && handle.length > 0 ? slugify(handle) : slugify(gitName());
 
 const runs = [
   ["2026-09-08T15:04:22Z", "4f1c9ab", "The list route reads the store directly. What does the caller get back when the store is empty?"],

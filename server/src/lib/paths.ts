@@ -107,13 +107,15 @@ export function slugify(name: string): string {
 }
 
 // The handle names the logbook file. It comes from ~/.belay/config.json, and
-// is seeded from git config user.name the first time anything asks for it.
+// is seeded from git config user.name the first time anything asks for it. A
+// handle edited by hand goes through the slug rule too, so it can only ever
+// name a file inside .belay/logbook.
 export function readHandle(root: string): string {
   const path = configPath();
   if (existsSync(path)) {
     try {
       const cfg = JSON.parse(readFileSync(path, "utf8")) as { handle?: unknown };
-      if (typeof cfg.handle === "string" && cfg.handle.length > 0) return cfg.handle;
+      if (typeof cfg.handle === "string" && cfg.handle.length > 0) return slugify(cfg.handle);
     } catch {
       // A config that will not parse is replaced below rather than reported.
     }

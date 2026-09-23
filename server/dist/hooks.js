@@ -77,7 +77,7 @@ function readHandle(root) {
   if (existsSync(path)) {
     try {
       const cfg = JSON.parse(readFileSync(path, "utf8"));
-      if (typeof cfg.handle === "string" && cfg.handle.length > 0) return cfg.handle;
+      if (typeof cfg.handle === "string" && cfg.handle.length > 0) return slugify(cfg.handle);
     } catch {
     }
   }
