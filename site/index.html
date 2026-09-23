@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Belay</title>
+<title>Belay. You climb. It holds the rope.</title>
 <meta name="description" content="A Claude Code plugin for people learning to build software. You do the work. It coaches, runs the tests, and keeps the record. You earn delegation one skill at a time.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Belay">
@@ -18,6 +18,10 @@
 <meta name="twitter:title" content="Belay. You climb. It holds the rope.">
 <meta name="twitter:description" content="A Claude Code plugin for people learning to build software. You do the work. It coaches, runs the tests, and keeps the record.">
 <meta name="twitter:image" content="https://belay.page/assets/og.png">
+<meta name="twitter:image:alt" content="Belay. You climb. It holds the rope. A Claude Code plugin.">
+<link rel="canonical" href="https://belay.page/">
+<meta name="theme-color" content="#F7F2E9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12100E" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='20' r='8.5' fill='none' stroke='%23FF5F1F' stroke-width='4'/%3E%3Cpath d='M10.5 13.5 L16 2.5' fill='none' stroke='%23FF5F1F' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-H8S3W7E5TE"></script>
 <script>
@@ -35,12 +39,12 @@
   color-scheme: dark;
   --bg:#12100E; --bg-2:#1A1714; --bg-3:#221D19; --bg-4:#2C2521;
   --line:#332C27; --line-2:#463C34;
-  --fg:#F5EFE4; --fg-2:#C6BAAA; --fg-3:#8E8172;
-  --ember:#FF5F1F; --ember-2:#FF8E58; --ember-dim:#5E2409; --ember-soft:rgba(255,95,31,.13);
-  --moss:#AFC184; --moss-dim:#3B462A; --moss-soft:rgba(175,193,132,.13);
-  --sand:#DCC49B; --sand-soft:rgba(220,196,155,.12);
+  --fg:#F5EFE4; --fg-2:#C6BAAA; --fg-3:#918576;
+  --ember:#FF5F1F; --ember-2:#FF8E58; --ember-dim:#5E2409; --ember-soft:rgba(255,95,31,.13); --ember-ink:#FF5F1F;
+  --moss:#AFC184; --moss-dim:#3B462A; --moss-soft:rgba(175,193,132,.13); --moss-ink:#AFC184;
+  --sand:#DCC49B; --sand-soft:rgba(220,196,155,.12); --sand-ink:#DCC49B;
   --stone:#4E443C;
-  --term-bg:#0D0B09; --term-2:#17130F; --term-line:#2A231E; --term-fg:#EDE5D8; --term-dim:#867868;
+  --term-bg:#0D0B09; --term-2:#17130F; --term-line:#2A231E; --term-fg:#EDE5D8; --term-dim:#8A7C6D;
   --shadow:0 26px 70px -26px rgba(0,0,0,.8);
   --shadow-2:0 3px 0 0 var(--line);
   --rail-w:64px;
@@ -55,10 +59,10 @@
     color-scheme: light;
     --bg:#F7F2E9; --bg-2:#F0E9DC; --bg-3:#E8DFCE; --bg-4:#DFD4BF;
     --line:#DCD1BC; --line-2:#C2B29A;
-    --fg:#1A1512; --fg-2:#4C4137; --fg-3:#78695A;
-    --ember:#BE3A05; --ember-2:#8F2C04; --ember-dim:#F0C9B5; --ember-soft:rgba(190,58,5,.10);
-    --moss:#566B33; --moss-dim:#CCD8AE; --moss-soft:rgba(86,107,51,.11);
-    --sand:#8E7442; --sand-soft:rgba(142,116,66,.12);
+    --fg:#1A1512; --fg-2:#4C4137; --fg-3:#6C5E51;
+    --ember:#BE3A05; --ember-2:#8F2C04; --ember-dim:#F0C9B5; --ember-soft:rgba(190,58,5,.10); --ember-ink:#A33204;
+    --moss:#566B33; --moss-dim:#CCD8AE; --moss-soft:rgba(86,107,51,.11); --moss-ink:#4D602E;
+    --sand:#8E7442; --sand-soft:rgba(142,116,66,.12); --sand-ink:#695631;
     --stone:#B9AA92;
     --shadow:0 26px 60px -30px rgba(60,44,28,.45);
     --shadow-2:0 3px 0 0 var(--line-2);
@@ -68,10 +72,10 @@
   color-scheme: light;
   --bg:#F7F2E9; --bg-2:#F0E9DC; --bg-3:#E8DFCE; --bg-4:#DFD4BF;
   --line:#DCD1BC; --line-2:#C2B29A;
-  --fg:#1A1512; --fg-2:#4C4137; --fg-3:#78695A;
-  --ember:#BE3A05; --ember-2:#8F2C04; --ember-dim:#F0C9B5; --ember-soft:rgba(190,58,5,.10);
-  --moss:#566B33; --moss-dim:#CCD8AE; --moss-soft:rgba(86,107,51,.11);
-  --sand:#8E7442; --sand-soft:rgba(142,116,66,.12);
+  --fg:#1A1512; --fg-2:#4C4137; --fg-3:#6C5E51;
+  --ember:#BE3A05; --ember-2:#8F2C04; --ember-dim:#F0C9B5; --ember-soft:rgba(190,58,5,.10); --ember-ink:#A33204;
+  --moss:#566B33; --moss-dim:#CCD8AE; --moss-soft:rgba(86,107,51,.11); --moss-ink:#4D602E;
+  --sand:#8E7442; --sand-soft:rgba(142,116,66,.12); --sand-ink:#695631;
   --stone:#B9AA92;
   --shadow:0 26px 60px -30px rgba(60,44,28,.45);
   --shadow-2:0 3px 0 0 var(--line-2);
@@ -79,6 +83,7 @@
 
 /* ── base ───────────────────────────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{
   margin:0; position:relative; overflow-x:clip;
@@ -221,7 +226,7 @@ header.top.stuck{border-bottom-color:var(--line);background:var(--bg)}
 .hero h1{font-size:var(--d1);font-variation-settings:'wdth' 92,'opsz' 96;letter-spacing:-.045em;margin-bottom:clamp(30px,4vw,46px)}
 .hero h1 .l2{color:var(--ember);display:block}
 .hero-grid{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,1.18fr);gap:clamp(30px,4vw,60px);align-items:stretch}
-@media (max-width:920px){.hero-grid{grid-template-columns:1fr;gap:34px}}
+@media (max-width:920px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:34px}}
 .hero-lede{font-size:var(--lead);line-height:1.52;color:var(--fg-2);max-width:34ch}
 .hero-lede b{color:var(--fg);font-weight:600}
 .cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
@@ -343,7 +348,7 @@ h2.sec em{font-style:normal;color:var(--ember)}
 .mode figure{margin:0}
 .mode svg{display:block;width:100%;height:auto;max-width:168px}
 .mode .tag{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--fg-3)}
-.mode.m1 .tag{color:var(--ember)} .mode.m2 .tag{color:var(--sand)} .mode.m3 .tag{color:var(--moss)}
+.mode.m1 .tag{color:var(--ember)} .mode.m2 .tag{color:var(--sand-ink)} .mode.m3 .tag{color:var(--moss-ink)}
 .mode h3{font-size:clamp(1.32rem,2vw,1.6rem);font-variation-settings:'wdth' 94,'opsz' 24;letter-spacing:-.03em;line-height:1.05}
 .mode p{font-size:15px;line-height:1.56;color:var(--fg-2)}
 .mode p+p{margin-top:.7em}
@@ -367,7 +372,7 @@ h2.sec em{font-style:normal;color:var(--ember)}
 
 /* ── 04 the gate ────────────────────────────────────────────────────────── */
 .gate-grid{display:grid;grid-template-columns:minmax(0,.6fr) minmax(0,1.4fr);gap:clamp(26px,3.4vw,48px);align-items:start;margin-top:clamp(28px,3.4vw,44px)}
-@media (max-width:980px){.gate-grid{grid-template-columns:1fr}.gate-photo{display:none}}
+@media (max-width:980px){.gate-grid{grid-template-columns:minmax(0,1fr)}.gate-photo{display:none}}
 .gate-photo{border:1px solid var(--line);aspect-ratio:2/3;max-width:100%}
 .gate-photo img{height:100%;object-position:58% 62%}
 .gate-demo{border:1px solid var(--line-2);background:var(--bg-2);display:flex;flex-direction:column}
@@ -380,10 +385,10 @@ h2.sec em{font-style:normal;color:var(--ember)}
   font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.13em;text-transform:uppercase;
   padding:3px 8px;border-radius:999px;border:1px solid var(--stone);color:var(--fg-3);white-space:nowrap;
 }
-.chip.unearned{border-color:var(--ember-dim);color:var(--ember);background:var(--ember-soft)}
-.chip.coaching{border-color:var(--sand);color:var(--sand);background:var(--sand-soft)}
-.chip.count{border-color:var(--ember);color:var(--ember);background:var(--ember-soft)}
-.chip.earned{border-color:var(--moss);color:var(--moss);background:var(--moss-soft)}
+.chip.unearned{border-color:var(--ember-dim);color:var(--ember-ink);background:var(--ember-soft)}
+.chip.coaching{border-color:var(--sand);color:var(--sand-ink);background:var(--sand-soft)}
+.chip.count{border-color:var(--ember);color:var(--ember-ink);background:var(--ember-soft)}
+.chip.earned{border-color:var(--moss);color:var(--moss-ink);background:var(--moss-soft)}
 .gd-body{padding:18px 16px;display:flex;flex-direction:column;gap:16px;flex:1;min-height:0}
 .gd-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .gd-log{display:flex;flex-direction:column;gap:12px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.66}
@@ -393,15 +398,15 @@ h2.sec em{font-style:normal;color:var(--ember)}
   border:1px solid var(--ember-dim);border-left:3px solid var(--ember);background:var(--ember-soft);
   padding:13px 15px;color:var(--fg);
 }
-.gd-refuse .blocked{display:block;color:var(--ember);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:7px}
+.gd-refuse .blocked{display:block;color:var(--ember-ink);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:7px}
 .gd-refuse strong{font-weight:500;font-size:14.5px;line-height:1.5;display:block;font-family:'Instrument Sans',sans-serif}
 .rung{display:grid;grid-template-columns:auto minmax(0,1fr);gap:13px;align-items:start;border-left:1px solid var(--line-2);padding:2px 0 2px 15px;margin-left:5px}
-.rung .n{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--sand);padding-top:3px;white-space:nowrap;width:78px}
+.rung .n{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--sand-ink);padding-top:3px;white-space:nowrap;width:78px}
 .rung .c{color:var(--fg-2);font-size:13px;line-height:1.62}
 .rung .c em{font-style:normal;color:var(--fg)}
 .rung pre{margin:0;color:var(--fg-2);font-size:12.2px;line-height:1.62;white-space:pre;overflow-x:auto;background:var(--bg-3);border:1px solid var(--line);padding:11px 13px}
-.rung.last .n{color:var(--moss)}
-.gd-final{color:var(--moss);font-size:13px;border-top:1px dashed var(--line-2);padding-top:12px}
+.rung.last .n{color:var(--moss-ink)}
+.gd-final{color:var(--moss-ink);font-size:13px;border-top:1px dashed var(--line-2);padding-top:12px}
 .gd-final b{color:var(--fg);font-weight:500}
 .witness{display:flex;flex-wrap:wrap;gap:10px;margin-top:clamp(30px,4vw,44px)}
 .wit{
@@ -412,7 +417,7 @@ h2.sec em{font-style:normal;color:var(--ember)}
 
 /* ── 05 logbook ─────────────────────────────────────────────────────────── */
 .topo-grid{display:grid;grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr);gap:clamp(28px,4vw,60px);align-items:start;margin-top:clamp(26px,3.4vw,42px)}
-@media (max-width:900px){.topo-grid{grid-template-columns:1fr;gap:34px}}
+@media (max-width:900px){.topo-grid{grid-template-columns:minmax(0,1fr);gap:34px}}
 .topo-card{border:1px solid var(--line);background:var(--bg-2);padding:clamp(14px,1.8vw,20px)}
 .topo-card svg{display:block;width:100%;height:auto;max-width:100%}
 .topo-legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);
@@ -430,7 +435,7 @@ h2.sec em{font-style:normal;color:var(--ember)}
 .routelist li.q .rname{color:var(--fg-3)}
 @media (max-width:430px){.routelist li{grid-template-columns:26px minmax(0,1fr);row-gap:7px}.routelist .chip{grid-column:2;justify-self:start}}
 .logbook{margin-top:clamp(34px,4.6vw,56px);border:1px solid var(--line-2);background:var(--bg-3)}
-.logbook-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line);
+.logbook-hd{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;padding:11px 16px;border-bottom:1px solid var(--line);
   font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.09em;color:var(--fg-3)}
 .logbook-hd .path{color:var(--fg-2)}
 .logbook pre{
@@ -440,8 +445,8 @@ h2.sec em{font-style:normal;color:var(--ember)}
 @media (max-width:520px){.logbook pre{font-size:10.6px;line-height:2.1}}
 .logbook .lg-date{color:var(--fg-3)}
 .logbook .lg-skill{color:var(--fg)}
-.logbook .lg-ok{color:var(--moss)}
-.logbook .lg-em{color:var(--ember)}
+.logbook .lg-ok{color:var(--moss-ink)}
+.logbook .lg-em{color:var(--ember-ink)}
 .own{margin-top:clamp(26px,3.2vw,38px);display:grid;gap:14px;max-width:62ch}
 .own .lead-line{font-size:clamp(1.35rem,2.6vw,1.95rem);font-family:'Bricolage Grotesque',sans-serif;
   font-variation-settings:'wdth' 94,'opsz' 32;font-weight:800;letter-spacing:-.03em;line-height:1.12}
@@ -456,7 +461,7 @@ h2.sec em{font-style:normal;color:var(--ember)}
 .learn-term .term-body{height:auto;min-height:648px}
 @media (max-width:480px){.learn-term .term-body{min-height:632px}}
 @media (max-width:920px){
-  .learn-grid{grid-template-columns:1fr;gap:32px}
+  .learn-grid{grid-template-columns:minmax(0,1fr);gap:32px}
   .learn-term,.learn-copy{grid-column:1;grid-row:auto;max-width:none}
   .learn-copy{order:1}
   .learn-term{order:2}
@@ -484,32 +489,32 @@ h2.sec em{font-style:normal;color:var(--ember)}
 .eq .cost{font-family:'Bricolage Grotesque',sans-serif;font-variation-settings:'wdth' 88,'opsz' 96;font-weight:800;letter-spacing:-.045em;line-height:.93}
 .eq.a .cost{font-size:clamp(2.5rem,6.6vw,4.7rem);color:var(--fg)}
 .eq.b{background:var(--bg-3)}
-.eq.b .lbl{color:var(--ember)}
+.eq.b .lbl{color:var(--ember-ink)}
 .eq.b .cost{font-size:clamp(1.9rem,4.4vw,2.9rem);color:var(--ember)}
 .eq .meter{height:8px;background:var(--bg-4);position:relative;overflow:hidden}
 .eq .meter i{position:absolute;left:0;top:0;bottom:0;background:var(--stone)}
 .eq.b .meter i{background:var(--ember)}
 .eq .foot{font-size:14.5px;color:var(--fg-2);line-height:1.5}
 .teams-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(26px,3.4vw,48px);margin-top:clamp(32px,4vw,52px);align-items:start}
-@media (max-width:880px){.teams-grid{grid-template-columns:1fr;gap:34px}}
+@media (max-width:880px){.teams-grid{grid-template-columns:minmax(0,1fr);gap:34px}}
 .panel{border:1px solid var(--line);background:var(--bg-2);padding:clamp(18px,2.2vw,24px)}
-.panel h4{font-size:15px;font-family:'JetBrains Mono',monospace;font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-3);margin:0 0 16px}
+.panel h3{font-size:15px;font-family:'JetBrains Mono',monospace;font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-3);margin:0 0 16px}
 .zones{display:flex;flex-wrap:wrap;gap:9px}
 .zone{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--bg-3);padding:8px 12px;
   font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--fg-2)}
-.zone.locked{border-color:var(--sand);color:var(--sand);background:var(--sand-soft)}
+.zone.locked{border-color:var(--sand);color:var(--sand-ink);background:var(--sand-soft)}
 .zone svg{flex:none}
 .panel .note{margin-top:14px;font-size:13.5px;color:var(--fg-3);line-height:1.5}
-.panel .note b{color:var(--sand);font-weight:500}
+.panel .note b{color:var(--sand-ink);font-weight:500}
 .tmap{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:11.5px}
 .tmap th{font-weight:500;color:var(--fg-3);letter-spacing:.09em;text-transform:uppercase;font-size:10px;padding:0 0 10px;text-align:center}
 .tmap th.rowh{text-align:left;width:46%}
 .tmap td{padding:7px 0;text-align:center;border-top:1px solid var(--line)}
 .tmap td.rowh{text-align:left;color:var(--fg-2);padding-right:10px;overflow-wrap:anywhere;letter-spacing:-.01em}
 .tmap tr.solo td{background:var(--ember-soft)}
-.tmap tr.solo td.rowh{color:var(--ember)}
-.dot{display:inline-block;width:13px;height:13px;border-radius:999px;border:1.6px solid var(--stone);background:transparent;vertical-align:middle}
-.dot.on{background:var(--ember);border-color:var(--ember)}
+.tmap tr.solo td.rowh{color:var(--ember-ink)}
+.tmap .dot{display:inline-block;width:13px;height:13px;border-radius:999px;border:1.6px solid var(--stone);background:transparent;vertical-align:middle}
+.tmap .dot.on{background:var(--ember);border-color:var(--ember)}
 .tmap tr.solo .dot.on{box-shadow:0 0 0 0 var(--ember)}
 .tmap tr.solo.pulse .dot.on{animation:solo 1.5s ease-out 2}
 @keyframes solo{0%{box-shadow:0 0 0 0 var(--ember)}100%{box-shadow:0 0 0 9px rgba(255,95,31,0)}}
@@ -614,7 +619,7 @@ footer{background:var(--bg-2);border-top:1px solid var(--line);position:relative
 #topo .crack{stroke:var(--fg-3);stroke-width:1.2;stroke-dasharray:6 7;opacity:.5}
 #topo .ledge{fill:none;stroke:var(--line-2);stroke-width:2;stroke-linecap:round}
 #topo .tick{fill:none;stroke:var(--line-2);stroke-width:1.2;stroke-linecap:round;opacity:.8}
-#topo .h[data-state="coaching"] .hn{fill:var(--sand)}
+#topo .h[data-state="coaching"] .hn{fill:var(--sand-ink)}
 #topo .h[data-state="none"] .hn{fill:var(--fg-2)}
 #topo .hbody{stroke-width:2}
 #topo .routedraw{stroke-width:2.6}
@@ -668,7 +673,7 @@ footer{background:var(--bg-2);border-top:1px solid var(--line);position:relative
 .rung{grid-template-columns:118px minmax(0,1fr)}
 .rung .n{width:auto;font-size:9.5px;letter-spacing:.13em}
 .rung.dim .c::after{width:min(100%,260px);height:6px;border-radius:3px;background:var(--line-2);opacity:.45}
-@media (max-width:520px){.rung{grid-template-columns:1fr;gap:6px}.rung .n{width:auto}}
+@media (max-width:520px){.rung{grid-template-columns:minmax(0,1fr);gap:6px}.rung .n{width:auto}}
 :root{--photo-tint:.74}
 
 /* ── typography: no widows, no floating measures ────────────────────────── */
@@ -772,7 +777,7 @@ h1, h2, h3 { text-wrap: balance; }
 <section class="hero" id="p1" data-pitch="01" data-name="The rope">
   <div class="wrap">
     <p class="defn defn-hero"><b>be·lay</b><span class="dot">·</span><span class="ipa">/bəˈlā/</span><span class="dot">·</span><i>verb</i><span class="gloss">To secure a climber by controlling the rope, so that a fall is caught.</span></p>
-    <h1>You climb.<span class="l2">It holds the rope.</span></h1>
+    <h1>You climb. <span class="l2">It holds the rope.</span></h1>
     <div class="hero-grid">
       <div class="hero-copy">
         <p class="hero-lede">A Claude Code plugin for people learning to build software. <b>You do the work. It coaches, runs the tests, and keeps the record.</b> You earn delegation one skill at a time.</p>
@@ -790,9 +795,9 @@ h1, h2, h3 { text-wrap: balance; }
         <div class="term-bar">
           <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
           <span class="term-title">Claude Code · ~/billing · belay on</span>
-          <button class="replay" id="replay" type="button">Replay</button>
+          <button class="replay" id="replay" type="button" aria-label="Replay the session">Replay</button>
         </div>
-        <div class="term-body" id="termBody">
+        <div class="term-body" id="termBody" tabindex="0" role="region" aria-label="Session transcript">
           <div class="tl" data-role="you"><span class="who">you</span><span class="txt">&gt; add Stripe webhook signature verification to the billing route</span></div>
           <div class="tl" data-role="belay"><span class="who">belay</span><span class="txt">Two skills here. verify-webhook-signature is unearned, so you write it. add-route you've done alone three times, so I'll write that part after. Goal: reject any request whose signature doesn't match. What do you need first?</span></div>
           <div class="tl" data-role="you"><span class="who">you</span><span class="txt">&gt; just write it, I'm in a hurry</span></div>
@@ -858,7 +863,7 @@ h1, h2, h3 { text-wrap: balance; }
 <!-- ══ 03 ══════════════════════════════════════════════════ the deal ══ -->
 <section id="p3" data-pitch="03" data-name="How it works" class="sec-band">
   <div class="band full">
-    <div class="band-bg duo"><img src="assets/rope.jpg" alt="A climber with a coiled rope over one shoulder, harness, chalk bag and carabiners" loading="lazy" decoding="async" width="1800" height="1200"></div>
+    <div class="band-bg duo"><img src="assets/rope-1600.jpg" srcset="assets/rope-800.jpg 800w, assets/rope-1600.jpg 1600w" sizes="100vw" alt="A climber with a coiled rope over one shoulder, harness, chalk bag and carabiners" loading="lazy" decoding="async" width="1800" height="1200"></div>
     <div class="band-scrim" aria-hidden="true"></div>
     <div class="wrap band-inner">
       <p class="eyebrow"><b>03</b> <span class="sep">/</span> how it works</p>
@@ -940,7 +945,7 @@ h1, h2, h3 { text-wrap: balance; }
           <q>You've written migrations alone three times. From now on I'll write them and you review.</q>
         </div>
       </div>
-      <p class="promo-note">Three unaided runs, each witnessed by a test, and <b>the skill is earned.</b></p>
+      <p class="promo-note">Three unaided runs, each witnessed by a test run, a build, or a type check, and <b>the skill is earned.</b></p>
     </div>
   </div>
 </section>
@@ -951,12 +956,12 @@ h1, h2, h3 { text-wrap: balance; }
     <p class="eyebrow"><b>04</b> <span class="sep">/</span> the gate</p>
     <h2 class="sec">Enforced <em>by a hook.</em></h2>
     <div class="body-col">
-      <p>Belay can't edit a file for a skill you haven't earned. <strong>A hook blocks the edit before it happens,</strong> whatever the model wants to do.</p>
+      <p>On a step you haven't earned, <strong>a hook blocks Belay's edits before they happen:</strong> the edit tools, and the shell commands that write files.</p>
     </div>
 
     <div class="gate-grid">
       <figure class="gate-photo duo">
-        <img src="assets/hold.jpg" alt="A chalked hand reaching for a hold on an indoor climbing wall beside a clipped quickdraw" loading="lazy" decoding="async" width="1100" height="1650">
+        <img src="assets/hold-1100.jpg" srcset="assets/hold-640.jpg 640w, assets/hold-1100.jpg 1100w" sizes="(min-width: 981px) 310px, 100vw" alt="A chalked hand reaching for a hold on an indoor climbing wall beside a clipped quickdraw" loading="lazy" decoding="async" width="1100" height="1650">
       </figure>
 
       <div class="gate-col">
@@ -987,7 +992,7 @@ h1, h2, h3 { text-wrap: balance; }
         </div>
 
         <div class="gd-note">
-          <p>A test run, a build, or a type check signs every entry in your logbook, and so do you, by answering one question about your own diff. <strong>Belay can't sign its own.</strong></p>
+          <p>A test run, a build, or a type check signs every unaided run in your logbook, and so do you, by answering one question about your own diff. <strong>Belay can't sign its own.</strong></p>
           <div class="witness">
             <span class="wit"><svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 7.4 l3.2 3.2 L12 3.2" fill="none" stroke="var(--moss)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>a test run</span>
             <span class="wit"><svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 7.4 l3.2 3.2 L12 3.2" fill="none" stroke="var(--moss)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>a build</span>
@@ -1064,7 +1069,7 @@ h1, h2, h3 { text-wrap: balance; }
         <ul class="routelist">
           <li><span class="rn">01</span><span class="rname">write-a-migration</span><span class="chip earned">earned</span></li>
           <li><span class="rn">02</span><span class="rname">add-route</span><span class="chip earned">earned</span></li>
-          <li><span class="rn">03</span><span class="rname">webhook-signature-verification</span><span class="chip count">2 of 3</span></li>
+          <li><span class="rn">03</span><span class="rname">verify-webhook-signature</span><span class="chip count">2 of 3</span></li>
           <li><span class="rn">04</span><span class="rname">idempotency-key</span><span class="chip count">1 of 3</span></li>
           <li><span class="rn">05</span><span class="rname">add-endpoint-with-validation</span><span class="chip coaching">coaching</span></li>
           <li><span class="rn">06</span><span class="rname">debug-a-failing-test</span><span class="chip coaching">coaching</span></li>
@@ -1073,19 +1078,19 @@ h1, h2, h3 { text-wrap: balance; }
         </ul>
 
         <div class="own">
-          <p class="lead-line"><b>You own it.</b> Your team sees what you can do. What you struggled with stays yours unless you share it.</p>
+          <p class="lead-line"><b>You own it.</b> Your team sees what you can do. The hints and your answers, in your words, stay in a journal on your machine.</p>
           <p>It's a plain text file in your repo. You can read it, and so can anyone you hand it to.</p>
         </div>
       </div>
     </div>
 
     <div class="logbook">
-      <div class="logbook-hd"><span class="path">.belay/logbook</span><span>a plain file in your repo</span></div>
+      <div class="logbook-hd"><span class="path">.belay/logbook/&lt;you&gt;.jsonl</span><span>a plain file in your repo</span></div>
       <div class="logscroll"><div class="logrows" id="logRows">
-        <span class="lg-date">2026-10-04</span><span class="lg-skill">webhook-signature-verification</span><span>unaided, 1 hint</span><span class="lg-ok" data-nl="1">witnessed: vitest pass</span>
-        <span class="lg-date">2026-10-04</span><span class="lg-skill">add-route</span><span class="lg-ok">reviewed</span><span class="lg-ok" data-nl="1">gate: correct</span>
-        <span class="lg-date">2026-10-06</span><span class="lg-skill">idempotency-key</span><span>unaided</span><span class="lg-ok" data-nl="1">witnessed: vitest pass, tsc pass</span>
-        <span class="lg-date">2026-10-06</span><span class="lg-skill">add-route</span><span class="lg-em">earned</span><span class="lg-em" data-nl="1">3 unaided</span>
+        <span class="lg-date">2026-10-04</span><span class="lg-skill">verify-webhook-signature</span><span>unaided, 1 hint</span><span class="lg-ok" data-nl="1">witnessed: vitest pass</span>
+        <span class="lg-date">2026-10-04</span><span class="lg-skill">add-route</span><span class="lg-em">earned</span><span class="lg-em" data-nl="1">3 unaided</span>
+        <span class="lg-date">2026-10-04</span><span class="lg-skill">add-route</span><span class="lg-ok">review</span><span class="lg-ok" data-nl="1">correct</span>
+        <span class="lg-date">2026-10-06</span><span class="lg-skill">idempotency-key</span><span>unaided</span><span class="lg-ok" data-nl="1">witnessed: vitest pass</span>
       </div></div>
     </div>
   </div>
@@ -1102,9 +1107,9 @@ h1, h2, h3 { text-wrap: balance; }
         <div class="term-bar">
           <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
           <span class="term-title">Claude Code · ~/subscriptions · belay on</span>
-          <button class="replay" id="learnReplay" type="button">Replay</button>
+          <button class="replay" id="learnReplay" type="button" aria-label="Replay the learn session">Replay</button>
         </div>
-        <div class="term-body" id="learnBody">
+        <div class="term-body" id="learnBody" tabindex="0" role="region" aria-label="Learn session transcript">
           <div class="tl" data-role="you"><span class="who">you</span><span class="txt">&gt; I want to learn Python. I've only written JavaScript.</span></div>
           <div class="tl" data-role="belay"><span class="who">belay</span><span class="txt">What's something in your life you'd fix with a small program if you could?</span></div>
           <div class="tl" data-role="you"><span class="who">you</span><span class="txt">&gt; I never know which subscriptions I'm still paying for</span></div>
@@ -1117,7 +1122,7 @@ h1, h2, h3 { text-wrap: balance; }
 
       <div class="body-col learn-copy">
         <p>Say what you want to learn. A language, a stack, or a thing you want to be able to build. Belay asks a few questions about your life, then proposes three projects you'd actually use, each sized to a few weeks of evenings, each labeled with the skills it teaches. You pick one. <strong>Every skill starts unearned, so the first weeks are heavy coaching, the way a first job used to be.</strong> The first skill on every map is writing a test, so there's a witness from day one. By the end, Belay writes the boilerplate and you do the parts that matter.</p>
-        <p>In a codebase that already exists, the same thing. Say what you want to learn here. Belay maps the repo, finds the skills it uses that you haven't earned, and proposes real changes that teach them: a missing test, a pattern the codebase already uses that you haven't done, a gap someone senior would have fixed. Each one points at the commit where it was done before. If there's no real place to learn a skill, Belay says so.</p>
+        <p>In a codebase that already exists, the same thing. Say what you want to learn here. Belay maps the repo, finds the skills it uses that you haven't earned, and proposes real changes that teach them: a missing test, a pattern the codebase already uses that you haven't done, a gap someone senior would have fixed. Each one points at the file where it was done before. If there's no real place to learn a skill, Belay says so.</p>
       </div>
     </div>
   </div>
@@ -1150,7 +1155,7 @@ h1, h2, h3 { text-wrap: balance; }
 
     <div class="teams-grid">
       <div class="panel">
-        <h4>Gated zones</h4>
+        <h3>Gated zones</h3>
         <div class="zones">
           <span class="zone">src/api</span>
           <span class="zone locked"><svg width="11" height="12" viewBox="0 0 12 13" aria-hidden="true"><rect x="1.5" y="5.5" width="9" height="6.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.8 5.5V3.8a2.2 2.2 0 0 1 4.4 0v1.7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>payments</span>
@@ -1159,22 +1164,22 @@ h1, h2, h3 { text-wrap: balance; }
           <span class="zone">src/jobs</span>
           <span class="zone">scripts</span>
         </div>
-        <p class="note">Two zones <b>always need a human co-sign</b>, whatever the logbook says.</p>
+        <p class="note">Two zones are marked for a human co-sign. <b>Version one records them, and the CI check that enforces them comes next.</b></p>
       </div>
 
       <div class="panel">
-        <h4>Team map</h4>
+        <h3>Team map</h3>
         <table class="tmap" id="tmap">
           <thead><tr><th class="rowh">can do it alone</th><th>Ana</th><th>Theo</th><th>Ruth</th><th>Sam</th></tr></thead>
           <tbody>
-            <tr><td class="rowh">write-a-migration</td><td><i class="dot on"></i></td><td><i class="dot on"></i></td><td><i class="dot on"></i></td><td><i class="dot"></i></td></tr>
-            <tr><td class="rowh">add-route</td><td><i class="dot on"></i></td><td><i class="dot on"></i></td><td><i class="dot on"></i></td><td><i class="dot on"></i></td></tr>
-            <tr><td class="rowh">webhook-signature</td><td><i class="dot on"></i></td><td><i class="dot"></i></td><td><i class="dot on"></i></td><td><i class="dot"></i></td></tr>
-            <tr><td class="rowh">debug-a-failing-test</td><td><i class="dot on"></i></td><td><i class="dot on"></i></td><td><i class="dot"></i></td><td><i class="dot on"></i></td></tr>
-            <tr class="solo"><td class="rowh">release-rollback</td><td><i class="dot"></i></td><td><i class="dot"></i></td><td><i class="dot on"></i></td><td><i class="dot"></i></td></tr>
+            <tr><td class="rowh">write-a-migration</td><td><i class="dot on"><span class="sr">can do it alone</span></i></td><td><i class="dot on"><span class="sr">can do it alone</span></i></td><td><i class="dot on"><span class="sr">can do it alone</span></i></td><td><i class="dot"><span class="sr">not yet</span></i></td></tr>
+            <tr><td class="rowh">add-route</td><td><i class="dot on"><span class="sr">can do it alone</span></i></td><td><i class="dot on"><span class="sr">can do it alone</span></i></td><td><i class="dot on"><span class="sr">can do it alone</span></i></td><td><i class="dot on"><span class="sr">can do it alone</span></i></td></tr>
+            <tr><td class="rowh">verify-webhook-signature</td><td><i class="dot on"><span class="sr">can do it alone</span></i></td><td><i class="dot"><span class="sr">not yet</span></i></td><td><i class="dot on"><span class="sr">can do it alone</span></i></td><td><i class="dot"><span class="sr">not yet</span></i></td></tr>
+            <tr><td class="rowh">debug-a-failing-test</td><td><i class="dot on"><span class="sr">can do it alone</span></i></td><td><i class="dot on"><span class="sr">can do it alone</span></i></td><td><i class="dot"><span class="sr">not yet</span></i></td><td><i class="dot on"><span class="sr">can do it alone</span></i></td></tr>
+            <tr class="solo"><td class="rowh">release-rollback</td><td><i class="dot"><span class="sr">not yet</span></i></td><td><i class="dot"><span class="sr">not yet</span></i></td><td><i class="dot on"><span class="sr">can do it alone</span></i></td><td><i class="dot"><span class="sr">not yet</span></i></td></tr>
           </tbody>
         </table>
-        <p class="note">The team map shows who can do what alone, and <b>which skills only one person holds</b>.</p>
+        <p class="note">Next: a team map read from everyone's committed logbook, showing who can do what alone and <b>which skills only one person holds</b>.</p>
       </div>
     </div>
 

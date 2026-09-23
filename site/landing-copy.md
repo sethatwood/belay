@@ -87,17 +87,17 @@ For every step of real work, one of three things happens. Your logbook decides w
 > Belay · earned · now
 > You've written migrations alone three times. From now on I'll write them and you review.
 
-Three unaided runs, each witnessed by a test, and the skill is earned.
+Three unaided runs, each witnessed by a test run, a build, or a type check, and the skill is earned.
 
 ---
 
 ## 4. Enforced by a hook
 
-Belay can't edit a file for a skill you haven't earned. A hook blocks the edit before it happens, whatever the model wants to do.
+On a step you haven't earned, a hook blocks Belay's edits before they happen: the edit tools, and the shell commands that write files.
 
 *(Gate demo: skill `retry-with-backoff`, chip `unearned`, `0 of 3 unaided`. Button "Ask Belay to write it" shows the hook refusal, "Not yet. This one's unearned. Want a hint?" Then three hints in order, labeled hint 1 · concept, hint 2 · your repo, hint 3 · pseudocode, then "no more hints": "Hints are out. Belay writes your senior a ten-minute question with what you tried." Final line: "The skill is still unearned, so the edit stays blocked.")*
 
-A test run, a build, or a type check signs every entry in your logbook, and so do you, by answering one question about your own diff. Belay can't sign its own.
+A test run, a build, or a type check signs every unaided run in your logbook, and so do you, by answering one question about your own diff. Belay can't sign its own.
 
 ---
 
@@ -112,7 +112,7 @@ The map is the list of skills your work needs. Write a migration. Add an endpoin
 ```
 01  write-a-migration               earned
 02  add-route                       earned
-03  webhook-signature-verification  2 of 3
+03  verify-webhook-signature        2 of 3
 04  idempotency-key                 1 of 3
 05  add-endpoint-with-validation    coaching
 06  debug-a-failing-test            coaching
@@ -120,16 +120,16 @@ The map is the list of skills your work needs. Write a migration. Add an endpoin
 08  release-rollback                not started
 ```
 
-**You own it.** Your team sees what you can do. What you struggled with stays yours unless you share it.
+**You own it.** Your team sees what you can do. The hints and your answers, in your words, stay in a journal on your machine.
 
 It's a plain text file in your repo. You can read it, and so can anyone you hand it to.
 
 ```
-.belay/logbook                                    a plain file in your repo
-2026-10-04  webhook-signature-verification   unaided, 1 hint   witnessed: vitest pass
-2026-10-04  add-route                        reviewed          gate: correct
-2026-10-06  idempotency-key                  unaided           witnessed: vitest pass, tsc pass
-2026-10-06  add-route                        earned            3 unaided
+.belay/logbook/<you>.jsonl                        a plain file in your repo
+2026-10-04  verify-webhook-signature   unaided, 1 hint   witnessed: vitest pass
+2026-10-04  add-route                  earned            3 unaided
+2026-10-04  add-route                  review            correct
+2026-10-06  idempotency-key            unaided           witnessed: vitest pass
 ```
 
 ---
@@ -138,7 +138,7 @@ It's a plain text file in your repo. You can read it, and so can anyone you hand
 
 Say what you want to learn. A language, a stack, or a thing you want to be able to build. Belay asks a few questions about your life, then proposes three projects you'd actually use, each sized to a few weeks of evenings, each labeled with the skills it teaches. You pick one. Every skill starts unearned, so the first weeks are heavy coaching, the way a first job used to be. The first skill on every map is writing a test, so there's a witness from day one. By the end, Belay writes the boilerplate and you do the parts that matter.
 
-In a codebase that already exists, the same thing. Say what you want to learn here. Belay maps the repo, finds the skills it uses that you haven't earned, and proposes real changes that teach them: a missing test, a pattern the codebase already uses that you haven't done, a gap someone senior would have fixed. Each one points at the commit where it was done before. If there's no real place to learn a skill, Belay says so.
+In a codebase that already exists, the same thing. Say what you want to learn here. Belay maps the repo, finds the skills it uses that you haven't earned, and proposes real changes that teach them: a missing test, a pattern the codebase already uses that you haven't done, a gap someone senior would have fixed. Each one points at the file where it was done before. If there's no real place to learn a skill, Belay says so.
 
 *(Visual: a second, shorter terminal, played once.)*
 
@@ -171,7 +171,11 @@ With Belay carrying your standards, a junior costs a senior about an hour a week
 
 Your team adds its own skills to the map, marks the zones that always need a human co-sign, and sets how many unaided runs earn a skill. When the hints run out, Belay writes the senior a ten-minute question instead of an afternoon of pairing.
 
-*(Panels: gated zones, where two zones always need a human co-sign whatever the logbook says; the team map, which shows who can do what alone, and which skills only one person holds.)*
+*(Panels: gated zones and the team map, each with a note:)*
+
+Two zones are marked for a human co-sign. Version one records them, and the CI check that enforces them comes next.
+
+Next: a team map read from everyone's committed logbook, showing who can do what alone and which skills only one person holds.
 
 Hire the junior again.
 
@@ -230,4 +234,4 @@ Photographs by BOOM Photography and cottonbro studio on Pexels. Page views are m
 - The route topo in section 5 is the only animation. Cascade fill, once, on scroll into view, reduced-motion safe. The two terminals play once each and have a replay button.
 - Phone width with a 16px gutter and no horizontal scroll.
 - No particles, typewriter, scroll-jacking, or decorative strips. If in doubt, remove one thing.
-- Static HTML, no framework, no build step, nothing collected. Photos are local files in `assets/`. Google Fonts is the only external request.
+- Static HTML, no framework, no build step, nothing collected beyond Google Analytics page views. Photos are local files in `assets/`. Google Fonts and Google Analytics are the only external requests.
