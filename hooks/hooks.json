@@ -36,6 +36,14 @@
         ]
       }
     ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/witness.sh", "timeout": 30 }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

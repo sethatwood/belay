@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseSummary, passed, recognize } from "../src/lib/witness.js";
+import { parseSummary, passed, recognize, recognizeAll, summary } from "../src/lib/witness.js";
 import { VITEST_FAIL, VITEST_PASS } from "./helpers.js";
 
 const WITNESSES: [string, string, string][] = [
@@ -21,7 +21,16 @@ const WITNESSES: [string, string, string][] = [
   ["python3 -m pytest -q", "test", "python3 -m pytest"],
   ["python -m unittest discover", "test", "python -m unittest"],
   ["python3 -m unittest", "test", "python3 -m unittest"],
-  ["uv run pytest", "test", "uv run pytest"],
+  ["uv run pytest", "test", "pytest"],
+  ["poetry run pytest -q", "test", "pytest"],
+  ["python3.12 -m pytest", "test", "python3 -m pytest"],
+  ["pnpm exec vitest run", "test", "vitest"],
+  ["yarn test", "test", "yarn test"],
+  ["npm run test:unit", "test", "npm test"],
+  ["cd server && npm test", "test", "npm test"],
+  ["env CI=1 npx vitest run", "test", "vitest"],
+  ["npm run typecheck", "types", "npm run typecheck"],
+  ["pnpm typecheck", "types", "pnpm typecheck"],
   ["mypy src", "types", "mypy"],
   ["uv run mypy .", "types", "mypy"],
   ["pyright", "types", "pyright"],
@@ -57,6 +66,14 @@ const NOT_WITNESSES = [
   "echo done",
   "npx prettier --write .",
   "cd server",
+  "echo 'vitest: 12 passed'",
+  "cat vitest.config.ts",
+  "cat pytest.ini",
+  "grep pytest requirements.txt",
+  "pip install pytest",
+  "npm ls jest",
+  "ls node_modules/.bin/tsc",
+  "npm run lint",
 ];
 
 for (const command of NOT_WITNESSES) {
@@ -118,4 +135,29 @@ test("a build that says it finished passes, and silence counts as a fail", () =>
   assert.equal(parseSummary("dist/index.js  1.2mb\n\nbuilt in 41ms"), true);
   assert.equal(parseSummary(""), false);
   assert.equal(passed({ stdout: "", stderr: "" }), false);
+});
+
+test("every witness in a line is found, in order, and a pipe or ; after one masks its exit code", () => {
+  const both = recognizeAll("npx tsc --noEmit && npx vitest run");
+  assert.deepEqual(both.map((w) => [w.label, w.masked]), [["tsc", false], ["vitest", false]]);
+  assert.equal(recognize("npx vitest run | tail -5")?.masked, true);
+  assert.equal(recognize("npx vitest run 2>&1 | tail -5")?.masked, true);
+  assert.equal(recognize("npx vitest run || true")?.masked, true);
+  assert.equal(recognize("npx vitest run; echo done")?.masked, true);
+  assert.equal(recognize("cd app && npx vitest run")?.masked, false);
+  assert.equal(recognize("npx vitest run")?.masked, false);
+});
+
+test("PostToolUse means exit 0, so a silent witness passes unless something hid its exit code", () => {
+  assert.equal(passed({ stdout: "", stderr: "" }, false), true, "a clean tsc prints nothing");
+  assert.equal(passed({ stdout: "\n  dist/index.js  812.4kb\n\n\u26a1 Done in 41ms\n", stderr: "" }, false), true);
+  assert.equal(passed({ stdout: "", stderr: "" }, true), false, "masked silence proves nothing");
+  assert.equal(passed(VITEST_FAIL, false), false, "output that says it failed wins");
+  assert.equal(passed({ stdout: "\u2718 [ERROR] Could not resolve \"./verify\"", stderr: "" }, false), false);
+});
+
+test("the summary says pass, fail, or nothing", () => {
+  assert.equal(summary(""), null);
+  assert.equal(summary("Exit code 1\nError: Cannot find module 'express'"), false);
+  assert.equal(summary("Tests  12 passed (12)"), true);
 });

@@ -6,7 +6,7 @@ import * as logbook from "./logbook.js";
 import * as map from "./map.js";
 import * as stateFile from "./state.js";
 import { findRepoRoot, git, nowIso, readHandle } from "./paths.js";
-import { passed, recognize } from "./witness.js";
+import { passed, recognizeAll } from "./witness.js";
 import { changedSince } from "./tree.js";
 import { writePattern } from "./writes.js";
 import { relative, isAbsolute } from "node:path";
@@ -136,15 +136,19 @@ export function attribute(input: HookInput): HookOutput {
   return null;
 }
 
+// Runs on PostToolUse for Bash, when the command exited 0, and on
+// PostToolUseFailure, when it did not. The event is the first word on whether
+// a witness passed; the output only matters when a pipe hides the exit code.
 export function witness(input: HookInput): HookOutput {
   const root = rootOf(input);
   const command = str(obj(input.tool_input).command);
   if (command.length === 0) return null;
-  const message = stateFile.update(root, (state) => witnessStep(root, state, command, input));
-  return message === null ? null : context("PostToolUse", message);
+  const event = str(input.hook_event_name) === "PostToolUseFailure" ? "PostToolUseFailure" : "PostToolUse";
+  const message = stateFile.update(root, (state) => witnessStep(root, state, command, event, input));
+  return message === null ? null : context(event, message);
 }
 
-function witnessStep(root: string, state: stateFile.State, command: string, input: HookInput): string | null {
+function witnessStep(root: string, state: stateFile.State, command: string, event: string, input: HookInput): string | null {
   const step = state.step;
   if (step === null) return null;
 
@@ -158,29 +162,37 @@ function witnessStep(root: string, state: stateFile.State, command: string, inpu
     }
   }
 
-  const recognized = recognize(command);
-  if (recognized === null) return null;
+  const found = recognizeAll(command);
+  if (found.length === 0) return null;
 
-  const pass = passed(input.tool_response);
-  const record: stateFile.Witness = { kind: recognized.kind, cmd: command, pass, at: nowIso() };
-  step.witnesses.push(record);
+  const at = nowIso();
+  const failed = event === "PostToolUseFailure";
+  const records: stateFile.Witness[] = found.map((w) => ({
+    kind: w.kind,
+    cmd: command,
+    pass: !failed && passed(input.tool_response, w.masked),
+    at,
+  }));
+  step.witnesses.push(...records);
+  const seen = found.map((w, i) => `${w.label} ${records[i].pass ? "pass" : "fail"}`).join(", ");
 
   if (step.mode !== "you") return null;
-  if (!pass) return `witnessed: ${recognized.label} fail`;
+  if (!records.some((r) => r.pass)) return `witnessed: ${seen}`;
   if (step.toolEdits.length > 0) {
-    return `witnessed: ${recognized.label} pass · not unaided: Claude edited ${step.toolEdits.join(", ")}`;
+    return `witnessed: ${seen} · not unaided: Claude edited ${step.toolEdits.join(", ")}`;
   }
   const skillMap = map.read(root);
   const skill = skillMap === null ? null : map.findSkill(skillMap, step.skill);
   const accepted = skill === null ? ["test"] : skill.witness;
+  const hit = records.find((r) => r.pass && accepted.includes(r.kind));
   const files = changedSince(root, step.baseline, step.snapshot);
-  if (!accepted.includes(recognized.kind) || files.length === 0) return `witnessed: ${recognized.label} pass`;
+  if (hit === undefined || files.length === 0) return `witnessed: ${seen}`;
   step.pending = {
-    witness: record,
+    witness: hit,
     commit: git(root, ["rev-parse", "--short", "HEAD"]),
     files,
   };
-  return `witnessed: ${recognized.label} pass · ${step.skill}: read their diff, ask one question about it with belay_ask, then record the answer with belay_answer`;
+  return `witnessed: ${seen} · ${step.skill}: read their diff, ask one question about it with belay_ask, then record the answer with belay_answer`;
 }
 
 export function stop(input: HookInput): HookOutput {

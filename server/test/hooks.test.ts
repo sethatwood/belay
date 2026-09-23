@@ -445,3 +445,93 @@ test("witnesses from parallel tool calls all stick, and the pending run survives
     f.cleanup();
   }
 });
+
+test("a clean type check that prints nothing is a passing witness", () => {
+  const f = makeRepo();
+  try {
+    belayBeginStep("write-a-migration", "add the invoices table", false, f.root);
+    writeFile(f.root, "migrations/001_invoices.ts", "export const up = () => {};\n");
+    const out = ctx(
+      witness({
+        cwd: f.root,
+        hook_event_name: "PostToolUse",
+        tool_name: "Bash",
+        tool_input: { command: "npx tsc --noEmit" },
+        tool_response: { stdout: "", stderr: "", interrupted: false, isImage: false },
+      }),
+    );
+    assert.match(String(out.additionalContext), /^witnessed: tsc pass · write-a-migration: read their diff/);
+    assert.equal(readState(f.root).step?.pending?.witness.kind, "types");
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("a failed command arrives as PostToolUseFailure and is recorded as a fail", () => {
+  const f = makeRepo();
+  try {
+    belayBeginStep("verify-webhook-signature", "reject bad signatures", false, f.root);
+    writeFile(f.root, "src/webhooks/verify.ts", "export const verify = () => true;\n");
+    const out = ctx(
+      witness({
+        cwd: f.root,
+        hook_event_name: "PostToolUseFailure",
+        tool_name: "Bash",
+        tool_input: { command: "npx vitest run" },
+        error: "Exit code 1\n Tests  1 failed | 11 passed (12)",
+        is_interrupt: false,
+      }),
+    );
+    assert.equal(out.hookEventName, "PostToolUseFailure");
+    assert.equal(out.additionalContext, "witnessed: vitest fail");
+    const step = readState(f.root).step;
+    assert.equal(step?.witnesses[0].pass, false);
+    assert.equal(step?.pending, null);
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("printing a test runner's name and a pass count is not a witness", () => {
+  const f = makeRepo();
+  try {
+    belayBeginStep("verify-webhook-signature", "reject bad signatures", false, f.root);
+    writeFile(f.root, "src/webhooks/verify.ts", "export const verify = () => true;\n");
+    const out = witness({
+      cwd: f.root,
+      hook_event_name: "PostToolUse",
+      tool_name: "Bash",
+      tool_input: { command: "echo 'vitest: 12 passed'" },
+      tool_response: { stdout: "vitest: 12 passed", stderr: "" },
+    });
+    assert.equal(out, null);
+    const step = readState(f.root).step;
+    assert.equal(step?.witnesses.length, 0);
+    assert.equal(step?.pending, null);
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("a type check and a test run in one line are two witnesses, and the test sets the pending run", () => {
+  const f = makeRepo();
+  try {
+    belayBeginStep("verify-webhook-signature", "reject bad signatures", false, f.root);
+    writeFile(f.root, "src/webhooks/verify.ts", "export const verify = () => true;\n");
+    const out = ctx(
+      witness({
+        cwd: f.root,
+        hook_event_name: "PostToolUse",
+        tool_name: "Bash",
+        tool_input: { command: "npx tsc --noEmit && npx vitest run" },
+        tool_response: VITEST_PASS,
+      }),
+    );
+    assert.match(String(out.additionalContext), /^witnessed: tsc pass, vitest pass · /);
+    const step = readState(f.root).step;
+    assert.deepEqual(step?.witnesses.map((w) => w.kind), ["types", "test"]);
+    assert.equal(step?.pending?.witness.kind, "test");
+  } finally {
+    f.cleanup();
+  }
+});

@@ -350,118 +350,6 @@ function newId() {
   return out;
 }
 
-// src/lib/witness.ts
-var TABLE = [
-  { kind: "test", label: "vitest", re: /\bvitest\b/ },
-  { kind: "test", label: "jest", re: /\bjest\b/ },
-  { kind: "test", label: "node --test", re: /\bnode\s+--test\b/ },
-  { kind: "test", label: "npm test", re: /\bnpm\s+(?:run\s+)?test\b/ },
-  { kind: "test", label: "pnpm test", re: /\bpnpm\s+(?:run\s+)?test\b/ },
-  { kind: "test", label: "bun test", re: /\bbun\s+test\b/ },
-  { kind: "test", label: "uv run pytest", re: /\buv\s+run\s+pytest\b/ },
-  { kind: "test", label: "python3 -m pytest", re: /\bpython3\s+-m\s+pytest\b/ },
-  { kind: "test", label: "python -m pytest", re: /\bpython\s+-m\s+pytest\b/ },
-  { kind: "test", label: "python3 -m unittest", re: /\bpython3\s+-m\s+unittest\b/ },
-  { kind: "test", label: "python -m unittest", re: /\bpython\s+-m\s+unittest\b/ },
-  { kind: "test", label: "pytest", re: /\bpytest\b/ },
-  { kind: "build", label: "npm run build", re: /\bnpm\s+run\s+build\b/ },
-  { kind: "build", label: "pnpm build", re: /\bpnpm\s+(?:run\s+)?build\b/ },
-  { kind: "build", label: "bun run build", re: /\bbun\s+run\s+build\b/ },
-  { kind: "build", label: "vite build", re: /\bvite\s+build\b/ },
-  { kind: "build", label: "next build", re: /\bnext\s+build\b/ },
-  { kind: "build", label: "esbuild", re: /\besbuild\b/ },
-  { kind: "types", label: "tsc", re: /\btsc\b/ },
-  { kind: "types", label: "mypy", re: /\bmypy\b/ },
-  { kind: "types", label: "pyright", re: /\bpyright\b/ }
-];
-function recognize(command) {
-  for (const row of TABLE) {
-    if (row.re.test(command)) return { kind: row.kind, label: row.label };
-  }
-  return null;
-}
-var CODE_KEYS = ["exitCode", "exit_code", "returnCode", "return_code", "code", "status"];
-function exitCodeOf(response) {
-  if (response === null || typeof response !== "object") return null;
-  const obj2 = response;
-  for (const key of CODE_KEYS) {
-    const value = obj2[key];
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-  }
-  return null;
-}
-function textOf(response) {
-  if (typeof response === "string") return response;
-  if (response === null || typeof response !== "object") return "";
-  const obj2 = response;
-  const parts = [];
-  for (const key of ["stdout", "stderr", "output", "content", "text"]) {
-    const value = obj2[key];
-    if (typeof value === "string") parts.push(value);
-  }
-  return parts.join("\n");
-}
-function parseSummary(text) {
-  const nodeTest = /^#\s*fail\s+(\d+)/m.exec(text);
-  if (nodeTest !== null) return Number(nodeTest[1]) === 0;
-  if (/\bno tests ran\b/i.test(text)) return false;
-  if (/^FAILED\b/m.test(text)) return false;
-  if (/\berror TS\d+/.test(text)) return false;
-  const found = /\bFound\s+(\d+)\s+errors?\b/.exec(text);
-  if (found !== null) return Number(found[1]) === 0;
-  if (/\bSuccess: no issues found\b/i.test(text)) return true;
-  const failed = /(\d+)\s+failed/i.exec(text);
-  if (failed !== null && Number(failed[1]) > 0) return false;
-  const passed2 = /(\d+)\s+passed/i.exec(text);
-  if (passed2 !== null && Number(passed2[1]) > 0) return true;
-  if (failed !== null) return true;
-  const errors = /(\d+)\s+errors?\b/i.exec(text);
-  if (errors !== null) return Number(errors[1]) === 0;
-  if (/^OK\b/m.test(text)) return true;
-  if (/\bbuilt in\b|\bbuild (?:completed|succeeded)\b|\bcompiled successfully\b/i.test(text)) {
-    return true;
-  }
-  return false;
-}
-function passed(response) {
-  if (response !== null && typeof response === "object") {
-    const obj2 = response;
-    if (obj2.interrupted === true) return false;
-    if (obj2.is_error === true || obj2.isError === true) return false;
-  }
-  const code = exitCodeOf(response);
-  if (code !== null) return code === 0;
-  return parseSummary(textOf(response));
-}
-
-// src/lib/tree.ts
-import { createHash as createHash2 } from "node:crypto";
-import { existsSync as existsSync5, readFileSync as readFileSync5, statSync as statSync2 } from "node:fs";
-import { join as join3 } from "node:path";
-var DEPENDENCY_DIRS = /* @__PURE__ */ new Set(["node_modules", ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache"]);
-function paths(output) {
-  if (output === null) return [];
-  return output.split("\0").filter((p) => p.length > 0);
-}
-function changedPaths(root, baseline) {
-  const found = /* @__PURE__ */ new Set();
-  if (baseline !== null && baseline.length > 0) {
-    for (const p of paths(git(root, ["diff", "--name-only", "-z", baseline, "--"]))) found.add(p);
-  }
-  for (const p of paths(git(root, ["ls-files", "--others", "--exclude-standard", "-z"]))) found.add(p);
-  return [...found].filter(
-    (p) => !p.startsWith(".belay/") && !p.split("/").some((part) => DEPENDENCY_DIRS.has(part))
-  );
-}
-function hashOf(root, path) {
-  const full = join3(root, path);
-  if (!existsSync5(full) || !statSync2(full).isFile()) return "missing";
-  return createHash2("sha256").update(readFileSync5(full)).digest("hex");
-}
-function changedSince(root, baseline, snap) {
-  return changedPaths(root, baseline).filter((path) => snap[path] !== hashOf(root, path));
-}
-
 // src/lib/writes.ts
 var BREAKERS = /* @__PURE__ */ new Set([";", "|", "&", "(", ")", "{", "}", "\n", "`"]);
 function stripQuotes(token) {
@@ -473,7 +361,7 @@ function stripQuotes(token) {
   return token;
 }
 function scan(command) {
-  const segments = [];
+  const segments2 = [];
   let segment = [];
   let token = "";
   let redirect = false;
@@ -484,9 +372,9 @@ function scan(command) {
       token = "";
     }
   };
-  const endSegment = () => {
+  const endSegment = (next) => {
     endToken();
-    if (segment.length > 0) segments.push(segment);
+    if (segment.length > 0) segments2.push({ tokens: segment, next });
     segment = [];
   };
   const readTarget = (from) => {
@@ -545,7 +433,7 @@ function scan(command) {
       continue;
     }
     if (ch === "$" && command[i + 1] === "(") {
-      endSegment();
+      endSegment("$(");
       i += 2;
       continue;
     }
@@ -575,7 +463,7 @@ function scan(command) {
     if (ch === ">") {
       endToken();
       i += 1;
-      if (command[i] === ">") i += 1;
+      if (command[i] === ">" || command[i] === "|") i += 1;
       let j = i;
       while (j < command.length && (command[j] === " " || command[j] === "	")) j += 1;
       if (command[j] === "&") {
@@ -589,9 +477,10 @@ function scan(command) {
       continue;
     }
     if (BREAKERS.has(ch)) {
-      endSegment();
       i += 1;
-      if (ch === "&" && command[i] === "&" || ch === "|" && command[i] === "|") i += 1;
+      const doubled = (ch === "&" || ch === "|") && command[i] === ch;
+      if (doubled) i += 1;
+      endSegment(doubled ? ch + ch : ch);
       continue;
     }
     if (/\s/.test(ch)) {
@@ -602,11 +491,14 @@ function scan(command) {
     token += ch;
     i += 1;
   }
-  endSegment();
-  return { redirect, heredoc, segments };
+  endSegment("");
+  return { redirect, heredoc, segments: segments2 };
+}
+function segments(command) {
+  return scan(command).segments;
 }
 var WRAPPERS = /* @__PURE__ */ new Set(["sudo", "command", "nohup", "time", "env", "exec", "xargs", "then", "do", "else", "timeout"]);
-var FILE_WRITERS = /* @__PURE__ */ new Set(["cp", "mv", "rm", "mkdir", "touch", "ln", "tee", "rsync", "install", "truncate", "dd", "unzip", "shred"]);
+var FILE_WRITERS = /* @__PURE__ */ new Set(["cp", "mv", "rm", "mkdir", "touch", "ln", "tee", "rsync", "install", "truncate", "dd", "unzip", "shred", "ed"]);
 var SHELLS = /* @__PURE__ */ new Set(["sh", "bash", "zsh", "dash", "ksh", "fish"]);
 var VALUE_FLAGS = {
   sudo: /* @__PURE__ */ new Set(["-u", "-g", "-C", "-h", "-p", "-r", "-t", "-U", "-D"]),
@@ -628,11 +520,23 @@ var GIT_TREE_WRITERS = /* @__PURE__ */ new Set([
 ]);
 var INLINE_FLAGS = {
   node: /* @__PURE__ */ new Set(["-e", "--eval", "-p", "--print"]),
+  bun: /* @__PURE__ */ new Set(["-e", "--eval", "-p", "--print"]),
+  tsx: /* @__PURE__ */ new Set(["-e", "--eval", "-p", "--print"]),
+  "ts-node": /* @__PURE__ */ new Set(["-e", "--eval", "-p", "--print"]),
   python: /* @__PURE__ */ new Set(["-c"]),
   python3: /* @__PURE__ */ new Set(["-c"]),
   ruby: /* @__PURE__ */ new Set(["-e"]),
   perl: /* @__PURE__ */ new Set(["-e", "-E"]),
   php: /* @__PURE__ */ new Set(["-r"])
+};
+var RUNNERS = {
+  npx: { subs: null, valued: /* @__PURE__ */ new Set(["-p", "--package", "--cache", "--userconfig"]) },
+  bunx: { subs: null, valued: /* @__PURE__ */ new Set(["-p", "--package"]) },
+  pnpm: { subs: /* @__PURE__ */ new Set(["exec", "dlx"]), valued: /* @__PURE__ */ new Set(["-C", "--dir", "--filter", "-F"]) },
+  yarn: { subs: /* @__PURE__ */ new Set(["exec", "dlx"]), valued: /* @__PURE__ */ new Set(["--cwd"]) },
+  uv: { subs: /* @__PURE__ */ new Set(["run"]), valued: /* @__PURE__ */ new Set(["--with", "--python", "-p", "--project", "--directory", "--group", "--extra", "--env-file", "--package"]) },
+  poetry: { subs: /* @__PURE__ */ new Set(["run"]), valued: /* @__PURE__ */ new Set(["-C", "--directory", "-P", "--project"]) },
+  pipenv: { subs: /* @__PURE__ */ new Set(["run"]), valued: /* @__PURE__ */ new Set() }
 };
 var PACKAGE_RUNNERS = /* @__PURE__ */ new Set(["npm", "pnpm", "yarn", "bun"]);
 var INSTALL_SUBS = /* @__PURE__ */ new Set(["install", "i", "add", "ci", "update", "upgrade"]);
@@ -646,6 +550,11 @@ function base(token) {
   const slash = bare.lastIndexOf("/");
   return slash >= 0 ? bare.slice(slash + 1) : bare;
 }
+function interpreter(name) {
+  if (/^python3(?:\.\d+)*$/.test(name)) return "python3";
+  if (/^python2(?:\.\d+)*$/.test(name)) return "python";
+  return name;
+}
 function firstArg(args) {
   for (const arg of args) {
     if (!arg.startsWith("-")) return base(arg);
@@ -653,18 +562,18 @@ function firstArg(args) {
   return "";
 }
 function pythonInstall(cmd, args) {
-  const words = args.filter((a) => !a.startsWith("-")).map(base);
-  const first = words[0] ?? "";
+  const words2 = args.filter((a) => !a.startsWith("-")).map(base);
+  const first = words2[0] ?? "";
   if (cmd === "pip" || cmd === "pip3") return PIP_SUBS.has(first) ? PACKAGE_INSTALL : null;
   if (cmd === "poetry") return POETRY_SUBS.has(first) ? PACKAGE_INSTALL : null;
   if (cmd === "pipx") return PIPX_SUBS.has(first) ? PACKAGE_INSTALL : null;
   if (cmd === "uv") {
-    if (first === "pip") return PIP_SUBS.has(words[1] ?? "") ? PACKAGE_INSTALL : null;
+    if (first === "pip") return PIP_SUBS.has(words2[1] ?? "") ? PACKAGE_INSTALL : null;
     return UV_SUBS.has(first) ? PACKAGE_INSTALL : null;
   }
   return null;
 }
-function segmentPattern(tokens) {
+function unwrap(tokens) {
   let i = 0;
   for (; ; ) {
     if (i < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[i])) {
@@ -688,10 +597,77 @@ function segmentPattern(tokens) {
     }
     break;
   }
-  const rest = tokens.slice(i);
+  return tokens.slice(i);
+}
+function throughRunner(rest) {
+  const cmd = rest.length > 0 ? base(rest[0]) : "";
+  const runner = RUNNERS[cmd];
+  if (runner === void 0) return rest;
+  let i = 1;
+  if (runner.subs !== null) {
+    while (i < rest.length && rest[i].startsWith("-")) i += runner.valued.has(rest[i]) ? 2 : 1;
+    if (i >= rest.length || !runner.subs.has(base(rest[i]))) return rest;
+    i += 1;
+  }
+  while (i < rest.length && rest[i].startsWith("-")) i += runner.valued.has(rest[i]) ? 2 : 1;
+  return i < rest.length ? rest.slice(i) : rest;
+}
+function commandOf(tokens) {
+  const rest = throughRunner(unwrap(tokens));
   if (rest.length === 0) return null;
-  const cmd = base(rest[0]);
-  const args = rest.slice(1).map(stripQuotes);
+  return { cmd: interpreter(base(rest[0])), args: rest.slice(1).map(stripQuotes) };
+}
+function formatter(cmd, args) {
+  const has = (...flags) => args.some((a) => flags.includes(a));
+  const words2 = args.filter((a) => !a.startsWith("-"));
+  if (cmd === "prettier") return has("--write", "-w");
+  if (cmd === "eslint" || cmd === "stylelint") return has("--fix");
+  if (cmd === "ruff") return has("--fix") || words2[0] === "format" && !has("--check", "--diff");
+  if (cmd === "black" || cmd === "isort") return !has("--check", "--check-only", "--diff");
+  if (cmd === "biome") return has("--write", "--apply", "--apply-unsafe", "--fix");
+  if (cmd === "autopep8") return has("-i", "--in-place");
+  return false;
+}
+function download(cmd, args) {
+  const discard = (value) => value === "-" || value === "/dev/null";
+  if (cmd === "curl") {
+    for (let i = 0; i < args.length; i += 1) {
+      const a = args[i];
+      if (a === "--output" || a === "-o") {
+        if (!discard(args[i + 1])) return true;
+      } else if (a === "--remote-name" || a === "--remote-name-all" || /^-[A-Za-z]*O[A-Za-z]*$/.test(a)) {
+        return true;
+      } else if (/^-[A-Za-z]*o$/.test(a)) {
+        if (!discard(args[i + 1])) return true;
+      } else if (/^-o./.test(a) && !discard(a.slice(2))) {
+        return true;
+      }
+    }
+    return false;
+  }
+  if (cmd === "wget") {
+    if (args.includes("--spider")) return false;
+    for (let i = 0; i < args.length; i += 1) {
+      const a = args[i];
+      if (a === "-O" || a === "--output-document") return !discard(args[i + 1]);
+      if (a.startsWith("--output-document=")) return !discard(a.slice("--output-document=".length));
+      if (/^-[A-Za-z]*O-?$/.test(a)) return a.endsWith("-") ? false : !discard(args[i + 1]);
+    }
+    return true;
+  }
+  return false;
+}
+function segmentPattern(tokens) {
+  const unwrapped = unwrap(tokens);
+  if (unwrapped.length === 0) return null;
+  const outer = base(unwrapped[0]);
+  const outerArgs = unwrapped.slice(1).map(stripQuotes);
+  if ((outer === "npx" || outer === "bunx") && outerArgs.some((a) => base(a).startsWith("create-"))) return "npx create-";
+  const installer = pythonInstall(outer, outerArgs);
+  if (installer !== null) return installer;
+  const found = commandOf(tokens);
+  if (found === null) return null;
+  const { cmd, args } = found;
   if (FILE_WRITERS.has(cmd)) return cmd;
   if (SHELLS.has(cmd)) {
     const at = args.indexOf("-c");
@@ -701,9 +677,15 @@ function segmentPattern(tokens) {
   if (cmd === "eval") return writePattern(args.join(" "));
   if (cmd === "sed" && args.some((a) => /^-[A-Za-z]*i/.test(a) || a === "--in-place")) return "sed -i";
   if (cmd === "perl" && args.some((a) => /^-[A-Za-z]*i/.test(a))) return "perl -i";
+  if ((cmd === "awk" || cmd === "gawk") && args.some((a, i) => a === "inplace" && args[i - 1] === "-i")) {
+    return "awk -i inplace";
+  }
   if (cmd === "patch") return "patch";
+  if (formatter(cmd, args)) return "formatter";
+  if (download(cmd, args)) return "download";
   const inline = INLINE_FLAGS[cmd];
   if (inline !== void 0 && args.some((a) => inline.has(a))) return `${cmd} inline`;
+  if (cmd === "deno" && firstArg(args) === "eval") return "deno inline";
   if (cmd === "python" || cmd === "python3") {
     const at = args.indexOf("-m");
     if (at >= 0 && at + 1 < args.length && base(args[at + 1]) === "pip") {
@@ -728,10 +710,6 @@ function segmentPattern(tokens) {
     if (sub === "reset" && (args.includes("--hard") || args.includes("--merge"))) return "git reset --hard";
     return null;
   }
-  if (cmd === "npx" || cmd === "bunx") {
-    if (args.some((a) => base(a).startsWith("create-"))) return "npx create-";
-    return null;
-  }
   if (PACKAGE_RUNNERS.has(cmd)) {
     const sub = firstArg(args);
     if (sub === "init") return "npm init";
@@ -743,14 +721,164 @@ function segmentPattern(tokens) {
   return null;
 }
 function writePattern(command) {
-  const { redirect, heredoc, segments } = scan(command);
-  if (redirect) return "redirect";
-  if (heredoc) return "heredoc";
-  for (const segment of segments) {
-    const pattern = segmentPattern(segment);
+  const scanned = scan(command);
+  if (scanned.redirect) return "redirect";
+  if (scanned.heredoc) return "heredoc";
+  for (const segment of scanned.segments) {
+    const pattern = segmentPattern(segment.tokens);
     if (pattern !== null) return pattern;
   }
   return null;
+}
+
+// src/lib/witness.ts
+var DIRECT = {
+  vitest: "test",
+  jest: "test",
+  pytest: "test",
+  "py.test": "test",
+  tsc: "types",
+  mypy: "types",
+  pyright: "types",
+  esbuild: "build"
+};
+var TYPECHECK_SCRIPTS = /* @__PURE__ */ new Set(["typecheck", "type-check", "types", "check-types", "tsc"]);
+function script(name) {
+  if (name === "test" || name.startsWith("test:")) return "test";
+  if (name === "build" || name.startsWith("build:")) return "build";
+  if (TYPECHECK_SCRIPTS.has(name)) return "types";
+  return null;
+}
+var SCRIPT_LABEL = { test: "test", build: "build", types: "typecheck" };
+function words(args) {
+  return args.filter((a) => !a.startsWith("-"));
+}
+function recognizeOne(tokens) {
+  const found = commandOf(tokens);
+  if (found === null) return null;
+  const { cmd, args } = found;
+  const rest = words(args);
+  const direct = DIRECT[cmd];
+  if (direct !== void 0) return { kind: direct, label: cmd === "py.test" ? "pytest" : cmd };
+  if (cmd === "node" && args.includes("--test")) return { kind: "test", label: "node --test" };
+  if (cmd === "vite" && rest[0] === "build") return { kind: "build", label: "vite build" };
+  if (cmd === "next" && rest[0] === "build") return { kind: "build", label: "next build" };
+  if (cmd === "python" || cmd === "python3") {
+    const at = args.indexOf("-m");
+    const module = at >= 0 ? args[at + 1] : void 0;
+    if (module === "pytest") return { kind: "test", label: `${cmd} -m pytest` };
+    if (module === "unittest") return { kind: "test", label: `${cmd} -m unittest` };
+    if (module === "mypy") return { kind: "types", label: "mypy" };
+    return null;
+  }
+  if (cmd === "npm" || cmd === "pnpm" || cmd === "yarn" || cmd === "bun") {
+    const sub = rest[0] ?? "";
+    if (sub === "test" || cmd === "npm" && (sub === "t" || sub === "tst")) {
+      return { kind: "test", label: `${cmd} test` };
+    }
+    const named = sub === "run" || sub === "run-script" ? rest[1] ?? "" : cmd === "npm" || cmd === "bun" ? "" : sub;
+    const kind = script(named);
+    if (kind === null) return null;
+    if (kind === "test") return { kind, label: `${cmd} test` };
+    const label = cmd === "pnpm" || cmd === "yarn" ? `${cmd} ${SCRIPT_LABEL[kind]}` : `${cmd} run ${SCRIPT_LABEL[kind]}`;
+    return { kind, label };
+  }
+  return null;
+}
+function recognizeAll(command) {
+  const parts = segments(command);
+  const out = [];
+  parts.forEach((segment, index) => {
+    const hit = recognizeOne(segment.tokens);
+    if (hit === null) return;
+    const last = index === parts.length - 1;
+    out.push({ ...hit, masked: !last && segment.next !== "&&" });
+  });
+  return out;
+}
+var CODE_KEYS = ["exitCode", "exit_code", "returnCode", "return_code", "code", "status"];
+function exitCodeOf(response) {
+  if (response === null || typeof response !== "object") return null;
+  const obj2 = response;
+  for (const key of CODE_KEYS) {
+    const value = obj2[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+  }
+  return null;
+}
+function textOf(response) {
+  if (typeof response === "string") return response;
+  if (response === null || typeof response !== "object") return "";
+  const obj2 = response;
+  const parts = [];
+  for (const key of ["stdout", "stderr", "output", "content", "text"]) {
+    const value = obj2[key];
+    if (typeof value === "string") parts.push(value);
+  }
+  return parts.join("\n");
+}
+function summary(text) {
+  const exit = /^Exit code (\d+)/m.exec(text);
+  if (exit !== null) return Number(exit[1]) === 0;
+  const nodeTest = /^#\s*fail\s+(\d+)/m.exec(text);
+  if (nodeTest !== null) return Number(nodeTest[1]) === 0;
+  if (/\bno tests ran\b/i.test(text)) return false;
+  if (/^FAILED\b/m.test(text)) return false;
+  if (/\berror TS\d+/.test(text)) return false;
+  if (/\[ERROR\]|\bnpm ERR!/.test(text)) return false;
+  const found = /\bFound\s+(\d+)\s+errors?\b/.exec(text);
+  if (found !== null) return Number(found[1]) === 0;
+  if (/\bSuccess: no issues found\b/i.test(text)) return true;
+  const failed = /(\d+)\s+failed/i.exec(text);
+  if (failed !== null && Number(failed[1]) > 0) return false;
+  const passedCount = /(\d+)\s+passed/i.exec(text);
+  if (passedCount !== null && Number(passedCount[1]) > 0) return true;
+  if (failed !== null) return true;
+  const errors = /(\d+)\s+errors?\b/i.exec(text);
+  if (errors !== null) return Number(errors[1]) === 0;
+  if (/^OK\b/m.test(text)) return true;
+  if (/\bbuilt in\b|\bbuild (?:completed|succeeded)\b|\bcompiled successfully\b/i.test(text)) {
+    return true;
+  }
+  return null;
+}
+function passed(response, masked = true) {
+  if (response !== null && typeof response === "object") {
+    const obj2 = response;
+    if (obj2.interrupted === true) return false;
+    if (obj2.is_error === true || obj2.isError === true) return false;
+  }
+  const code = exitCodeOf(response);
+  if (code !== null) return code === 0;
+  return summary(textOf(response)) ?? !masked;
+}
+
+// src/lib/tree.ts
+import { createHash as createHash2 } from "node:crypto";
+import { existsSync as existsSync5, readFileSync as readFileSync5, statSync as statSync2 } from "node:fs";
+import { join as join3 } from "node:path";
+var DEPENDENCY_DIRS = /* @__PURE__ */ new Set(["node_modules", ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache"]);
+function paths(output) {
+  if (output === null) return [];
+  return output.split("\0").filter((p) => p.length > 0);
+}
+function changedPaths(root, baseline) {
+  const found = /* @__PURE__ */ new Set();
+  if (baseline !== null && baseline.length > 0) {
+    for (const p of paths(git(root, ["diff", "--name-only", "-z", baseline, "--"]))) found.add(p);
+  }
+  for (const p of paths(git(root, ["ls-files", "--others", "--exclude-standard", "-z"]))) found.add(p);
+  return [...found].filter(
+    (p) => !p.startsWith(".belay/") && !p.split("/").some((part) => DEPENDENCY_DIRS.has(part))
+  );
+}
+function hashOf(root, path) {
+  const full = join3(root, path);
+  if (!existsSync5(full) || !statSync2(full).isFile()) return "missing";
+  return createHash2("sha256").update(readFileSync5(full)).digest("hex");
+}
+function changedSince(root, baseline, snap) {
+  return changedPaths(root, baseline).filter((path) => snap[path] !== hashOf(root, path));
 }
 
 // src/lib/handlers.ts
@@ -862,10 +990,11 @@ function witness(input) {
   const root = rootOf(input);
   const command = str(obj(input.tool_input).command);
   if (command.length === 0) return null;
-  const message = update(root, (state) => witnessStep(root, state, command, input));
-  return message === null ? null : context("PostToolUse", message);
+  const event = str(input.hook_event_name) === "PostToolUseFailure" ? "PostToolUseFailure" : "PostToolUse";
+  const message = update(root, (state) => witnessStep(root, state, command, event, input));
+  return message === null ? null : context(event, message);
 }
-function witnessStep(root, state, command, input) {
+function witnessStep(root, state, command, event, input) {
   const step = state.step;
   if (step === null) return null;
   if (writePattern(command) !== null) {
@@ -873,27 +1002,35 @@ function witnessStep(root, state, command, input) {
       if (!step.toolEdits.includes(file)) step.toolEdits.push(file);
     }
   }
-  const recognized = recognize(command);
-  if (recognized === null) return null;
-  const pass = passed(input.tool_response);
-  const record = { kind: recognized.kind, cmd: command, pass, at: nowIso() };
-  step.witnesses.push(record);
+  const found = recognizeAll(command);
+  if (found.length === 0) return null;
+  const at = nowIso();
+  const failed = event === "PostToolUseFailure";
+  const records = found.map((w) => ({
+    kind: w.kind,
+    cmd: command,
+    pass: !failed && passed(input.tool_response, w.masked),
+    at
+  }));
+  step.witnesses.push(...records);
+  const seen = found.map((w, i) => `${w.label} ${records[i].pass ? "pass" : "fail"}`).join(", ");
   if (step.mode !== "you") return null;
-  if (!pass) return `witnessed: ${recognized.label} fail`;
+  if (!records.some((r) => r.pass)) return `witnessed: ${seen}`;
   if (step.toolEdits.length > 0) {
-    return `witnessed: ${recognized.label} pass \xB7 not unaided: Claude edited ${step.toolEdits.join(", ")}`;
+    return `witnessed: ${seen} \xB7 not unaided: Claude edited ${step.toolEdits.join(", ")}`;
   }
   const skillMap = read(root);
   const skill = skillMap === null ? null : findSkill(skillMap, step.skill);
   const accepted = skill === null ? ["test"] : skill.witness;
+  const hit = records.find((r) => r.pass && accepted.includes(r.kind));
   const files = changedSince(root, step.baseline, step.snapshot);
-  if (!accepted.includes(recognized.kind) || files.length === 0) return `witnessed: ${recognized.label} pass`;
+  if (hit === void 0 || files.length === 0) return `witnessed: ${seen}`;
   step.pending = {
-    witness: record,
+    witness: hit,
     commit: git(root, ["rev-parse", "--short", "HEAD"]),
     files
   };
-  return `witnessed: ${recognized.label} pass \xB7 ${step.skill}: read their diff, ask one question about it with belay_ask, then record the answer with belay_answer`;
+  return `witnessed: ${seen} \xB7 ${step.skill}: read their diff, ask one question about it with belay_ask, then record the answer with belay_answer`;
 }
 function stop(input) {
   if (input.stop_hook_active === true) return null;
