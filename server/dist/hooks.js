@@ -242,8 +242,10 @@ function derive(entries, skillId, map) {
 }
 
 // src/lib/state.ts
-import { randomBytes } from "node:crypto";
-import { existsSync as existsSync4, mkdirSync as mkdirSync3, readFileSync as readFileSync4, writeFileSync as writeFileSync2 } from "node:fs";
+import { createHash, randomBytes } from "node:crypto";
+import { closeSync, existsSync as existsSync4, mkdirSync as mkdirSync3, openSync, readFileSync as readFileSync4, renameSync, statSync, unlinkSync, writeFileSync as writeFileSync2 } from "node:fs";
+import { tmpdir } from "node:os";
+import { join as join2, resolve as resolve2 } from "node:path";
 var EMPTY = { version: 1, step: null, last: null };
 function read3(root) {
   const path = statePath(root);
@@ -280,8 +282,60 @@ function normalizeStep(raw) {
 }
 function write(root, state) {
   mkdirSync3(belayDir(root), { recursive: true });
-  writeFileSync2(statePath(root), `${JSON.stringify(state, null, 2)}
+  const path = statePath(root);
+  const temp = `${path}.${process.pid}.tmp`;
+  writeFileSync2(temp, `${JSON.stringify(state, null, 2)}
 `, "utf8");
+  renameSync(temp, path);
+}
+var LOCK_WAIT_MS = 2e3;
+var LOCK_STALE_MS = 1e4;
+function lockPath(root) {
+  const hash = createHash("sha256").update(resolve2(root)).digest("hex").slice(0, 16);
+  return join2(tmpdir(), `belay-${hash}.lock`);
+}
+function pause(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+function acquire(path) {
+  const deadline = Date.now() + LOCK_WAIT_MS;
+  for (; ; ) {
+    try {
+      closeSync(openSync(path, "wx"));
+      return true;
+    } catch (error) {
+      if (error.code !== "EEXIST") return false;
+    }
+    try {
+      if (Date.now() - statSync(path).mtimeMs > LOCK_STALE_MS) {
+        unlinkSync(path);
+        continue;
+      }
+    } catch {
+      continue;
+    }
+    if (Date.now() > deadline) return false;
+    pause(5 + Math.floor(Math.random() * 10));
+  }
+}
+function update(root, fn) {
+  const hasBelay = existsSync4(belayDir(root));
+  const path = lockPath(root);
+  const held = hasBelay && acquire(path);
+  try {
+    const state = read3(root);
+    const before = JSON.stringify(state);
+    const result = fn(state);
+    if (hasBelay && JSON.stringify(state) !== before) write(root, state);
+    return result;
+  } finally {
+    if (held) {
+      try {
+        unlinkSync(path);
+      } catch {
+      }
+    }
+  }
 }
 var CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 function newId() {
@@ -381,9 +435,9 @@ function passed(response) {
 }
 
 // src/lib/tree.ts
-import { createHash } from "node:crypto";
-import { existsSync as existsSync5, readFileSync as readFileSync5, statSync } from "node:fs";
-import { join as join2 } from "node:path";
+import { createHash as createHash2 } from "node:crypto";
+import { existsSync as existsSync5, readFileSync as readFileSync5, statSync as statSync2 } from "node:fs";
+import { join as join3 } from "node:path";
 var DEPENDENCY_DIRS = /* @__PURE__ */ new Set(["node_modules", ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache"]);
 function paths(output) {
   if (output === null) return [];
@@ -400,9 +454,9 @@ function changedPaths(root, baseline) {
   );
 }
 function hashOf(root, path) {
-  const full = join2(root, path);
-  if (!existsSync5(full) || !statSync(full).isFile()) return "missing";
-  return createHash("sha256").update(readFileSync5(full)).digest("hex");
+  const full = join3(root, path);
+  if (!existsSync5(full) || !statSync2(full).isFile()) return "missing";
+  return createHash2("sha256").update(readFileSync5(full)).digest("hex");
 }
 function changedSince(root, baseline, snap) {
   return changedPaths(root, baseline).filter((path) => snap[path] !== hashOf(root, path));
@@ -736,24 +790,23 @@ function sessionStart(input) {
 }
 function prompt(input) {
   const root = rootOf(input);
-  const state = read3(root);
-  const lines = [];
-  const step = state.step;
-  if (step === null) {
-    lines.push("belay: no step in progress");
-  } else {
-    const witnesses = step.witnesses.length === 0 ? "none" : step.witnesses.map((w) => `${w.kind} ${w.pass ? "pass" : "fail"}`).join(", ");
-    lines.push(
-      `belay: step ${step.skill} \xB7 mode ${step.mode} \xB7 hints ${step.hints} \xB7 witnesses ${witnesses}`
-    );
-  }
-  if (state.last !== null && state.last.shown !== true) {
-    const last = state.last;
-    const tail = last.state === void 0 ? "" : ` \xB7 ${last.state}`;
-    lines.push(`belay: last step ${last.skill} \xB7 ${last.result}${tail}`);
-    last.shown = true;
-    write(root, state);
-  }
+  const lines = update(root, (state) => {
+    const out = [];
+    const step = state.step;
+    if (step === null) {
+      out.push("belay: no step in progress");
+    } else {
+      const witnesses = step.witnesses.length === 0 ? "none" : step.witnesses.map((w) => `${w.kind} ${w.pass ? "pass" : "fail"}`).join(", ");
+      out.push(`belay: step ${step.skill} \xB7 mode ${step.mode} \xB7 hints ${step.hints} \xB7 witnesses ${witnesses}`);
+    }
+    if (state.last !== null && state.last.shown !== true) {
+      const last = state.last;
+      const tail = last.state === void 0 ? "" : ` \xB7 ${last.state}`;
+      out.push(`belay: last step ${last.skill} \xB7 ${last.result}${tail}`);
+      last.shown = true;
+    }
+    return out;
+  });
   return context("UserPromptSubmit", lines.join("\n"));
 }
 function deny(reason) {
@@ -796,67 +849,51 @@ function within(root, path) {
 }
 function attribute(input) {
   const root = rootOf(input);
-  const state = read3(root);
-  const step = state.step;
-  if (step === null) return null;
   const path = filePathOf(obj(input.tool_input));
   if (path.length === 0) return null;
   const rel = within(root, path);
-  if (!step.toolEdits.includes(rel)) {
-    step.toolEdits.push(rel);
-    write(root, state);
-  }
+  update(root, (state) => {
+    const step = state.step;
+    if (step !== null && !step.toolEdits.includes(rel)) step.toolEdits.push(rel);
+  });
   return null;
 }
 function witness(input) {
   const root = rootOf(input);
-  const state = read3(root);
-  const step = state.step;
-  if (step === null) return null;
   const command = str(obj(input.tool_input).command);
   if (command.length === 0) return null;
-  let marked = false;
+  const message = update(root, (state) => witnessStep(root, state, command, input));
+  return message === null ? null : context("PostToolUse", message);
+}
+function witnessStep(root, state, command, input) {
+  const step = state.step;
+  if (step === null) return null;
   if (writePattern(command) !== null) {
     for (const file of changedSince(root, step.baseline, step.snapshot)) {
-      if (!step.toolEdits.includes(file)) {
-        step.toolEdits.push(file);
-        marked = true;
-      }
+      if (!step.toolEdits.includes(file)) step.toolEdits.push(file);
     }
   }
   const recognized = recognize(command);
-  if (recognized === null) {
-    if (marked) write(root, state);
-    return null;
-  }
+  if (recognized === null) return null;
   const pass = passed(input.tool_response);
   const record = { kind: recognized.kind, cmd: command, pass, at: nowIso() };
   step.witnesses.push(record);
-  let message = null;
-  if (step.mode === "you") {
-    if (!pass) {
-      message = `witnessed: ${recognized.label} fail`;
-    } else if (step.toolEdits.length > 0) {
-      message = `witnessed: ${recognized.label} pass \xB7 not unaided: Claude edited ${step.toolEdits.join(", ")}`;
-    } else {
-      const skillMap = read(root);
-      const skill = skillMap === null ? null : findSkill(skillMap, step.skill);
-      const accepted = skill === null ? ["test"] : skill.witness;
-      const files = changedSince(root, step.baseline, step.snapshot);
-      if (accepted.includes(recognized.kind) && files.length > 0) {
-        step.pending = {
-          witness: record,
-          commit: git(root, ["rev-parse", "--short", "HEAD"]),
-          files
-        };
-        message = `witnessed: ${recognized.label} pass \xB7 ${step.skill}: read their diff, ask one question about it with belay_ask, then record the answer with belay_answer`;
-      } else {
-        message = `witnessed: ${recognized.label} pass`;
-      }
-    }
+  if (step.mode !== "you") return null;
+  if (!pass) return `witnessed: ${recognized.label} fail`;
+  if (step.toolEdits.length > 0) {
+    return `witnessed: ${recognized.label} pass \xB7 not unaided: Claude edited ${step.toolEdits.join(", ")}`;
   }
-  write(root, state);
-  return message === null ? null : context("PostToolUse", message);
+  const skillMap = read(root);
+  const skill = skillMap === null ? null : findSkill(skillMap, step.skill);
+  const accepted = skill === null ? ["test"] : skill.witness;
+  const files = changedSince(root, step.baseline, step.snapshot);
+  if (!accepted.includes(recognized.kind) || files.length === 0) return `witnessed: ${recognized.label} pass`;
+  step.pending = {
+    witness: record,
+    commit: git(root, ["rev-parse", "--short", "HEAD"]),
+    files
+  };
+  return `witnessed: ${recognized.label} pass \xB7 ${step.skill}: read their diff, ask one question about it with belay_ask, then record the answer with belay_answer`;
 }
 function stop(input) {
   if (input.stop_hook_active === true) return null;

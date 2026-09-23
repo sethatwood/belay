@@ -72,8 +72,10 @@ export function belayMap(cwd?: string): unknown {
 export function belayBeginStep(skill: string, goal: string, followUp?: boolean, cwd?: string): unknown {
   const ctx = context(cwd);
   if (map.findSkill(ctx.map, skill) === null) throw new Error(`no skill ${skill} in this repo's map`);
+  return stateFile.update(ctx.root, (state) => beginStep(ctx, state, skill, goal, followUp));
+}
 
-  const state = stateFile.read(ctx.root);
+function beginStep(ctx: Ctx, state: stateFile.State, skill: string, goal: string, followUp?: boolean): unknown {
   // A follow-up only makes sense straight after a step on the same skill. The
   // last closed step is the one this asks to carry on from.
   const asked = followUp === true;
@@ -106,7 +108,6 @@ export function belayBeginStep(skill: string, goal: string, followUp?: boolean, 
     pending: null,
     question: null,
   };
-  stateFile.write(ctx.root, state);
 
   const result: Record<string, unknown> = {
     mode,
@@ -124,13 +125,15 @@ export function belayBeginStep(skill: string, goal: string, followUp?: boolean, 
 
 export function belayHint(skill: string, text: string, cwd?: string): unknown {
   const ctx = context(cwd);
-  const state = stateFile.read(ctx.root);
+  return stateFile.update(ctx.root, (state) => hint(ctx, state, text));
+}
+
+function hint(ctx: Ctx, state: stateFile.State, text: string): unknown {
   const step = state.step;
   if (step === null) throw new Error("no step in progress");
   if (step.mode !== "you") throw new Error(`hints are only given on a you step, and ${step.skill} is a ${step.mode} step`);
 
   step.hints += 1;
-  stateFile.write(ctx.root, state);
 
   const rung = Math.min(step.hints, 4);
   journal.write(ctx.root, { kind: "hint", skill: step.skill, rung, note: text });
@@ -146,7 +149,10 @@ export function belayHint(skill: string, text: string, cwd?: string): unknown {
 
 export function belayAsk(skill: string, question: string, expected: string, cwd?: string): unknown {
   const ctx = context(cwd);
-  const state = stateFile.read(ctx.root);
+  return stateFile.update(ctx.root, (state) => ask(ctx, state, question, expected));
+}
+
+function ask(ctx: Ctx, state: stateFile.State, question: string, expected: string): unknown {
   const step = state.step;
   if (step === null) throw new Error("no step in progress");
   if (step.mode === "you" && step.pending === null) {
@@ -154,14 +160,16 @@ export function belayAsk(skill: string, question: string, expected: string, cwd?
   }
 
   step.question = { text: question, expected, askedAt: nowIso() };
-  stateFile.write(ctx.root, state);
   journal.write(ctx.root, { kind: "question", skill: step.skill, mode: step.mode, note: question, expected });
   return { ok: true, skill: step.skill, mode: step.mode };
 }
 
 export function belayAnswer(skill: string, correct: boolean, answer: string, cwd?: string): unknown {
   const ctx = context(cwd);
-  const state = stateFile.read(ctx.root);
+  return stateFile.update(ctx.root, (state) => recordAnswer(ctx, state, correct, answer));
+}
+
+function recordAnswer(ctx: Ctx, state: stateFile.State, correct: boolean, answer: string): unknown {
   const step = state.step;
   if (step === null) throw new Error("no step in progress");
   const question = step.question;
@@ -180,7 +188,6 @@ export function belayAnswer(skill: string, correct: boolean, answer: string, cwd
       runs: derived.runs,
       threshold: ctx.map.threshold,
     });
-    stateFile.write(ctx.root, state);
     return {
       skill: step.skill,
       state: derived.state,
@@ -204,7 +211,6 @@ export function belayAnswer(skill: string, correct: boolean, answer: string, cwd
       // witness starts the check over.
       step.pending = null;
       step.question = null;
-      stateFile.write(ctx.root, state);
       const still = logbook.derive(logbook.read(ctx.root, ctx.handle).entries, step.skill, ctx.map);
       return {
         skill: step.skill,
@@ -264,7 +270,6 @@ export function belayAnswer(skill: string, correct: boolean, answer: string, cwd
     runs: derived.runs,
     threshold: ctx.map.threshold,
   });
-  stateFile.write(ctx.root, state);
   return result;
 }
 
@@ -280,12 +285,12 @@ export function belayLogbook(skill?: string, limit?: number, cwd?: string): unkn
 
 export function belayEndStep(reason: string, cwd?: string): unknown {
   const root = findRepoRoot(cwd);
-  const state = stateFile.read(root);
-  if (state.step === null) return { ok: true, closed: false };
-  const skill = state.step.skill;
-  closeInto(state, "ended", { reason });
-  stateFile.write(root, state);
-  return { ok: true, closed: true, skill };
+  return stateFile.update(root, (state) => {
+    if (state.step === null) return { ok: true, closed: false };
+    const skill = state.step.skill;
+    closeInto(state, "ended", { reason });
+    return { ok: true, closed: true, skill };
+  });
 }
 
 const STYLE_SETTING = "belay:Belay";

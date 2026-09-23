@@ -2,8 +2,10 @@
 // the start and end of a step, the hooks write what they see during one, and
 // both read it fresh every time.
 
-import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash, randomBytes } from "node:crypto";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { belayDir, statePath } from "./paths.js";
 
 export type Mode = "you" | "review" | "quiet";
@@ -104,9 +106,78 @@ function normalizeStep(raw: unknown): Step | null {
   };
 }
 
+// Written whole to a temporary file and renamed into place, so a hook killed
+// mid-write leaves the previous state rather than half of the next one.
 export function write(root: string, state: State): void {
   mkdirSync(belayDir(root), { recursive: true });
-  writeFileSync(statePath(root), `${JSON.stringify(state, null, 2)}\n`, "utf8");
+  const path = statePath(root);
+  const temp = `${path}.${process.pid}.tmp`;
+  writeFileSync(temp, `${JSON.stringify(state, null, 2)}\n`, "utf8");
+  renameSync(temp, path);
+}
+
+// Claude Code runs the hooks for parallel tool calls at the same time, and
+// each one reads the state, changes it, and writes it back. Without a lock the
+// last writer wins and the other hook's witness is lost. The lock lives in the
+// system temp directory, so a stale one never shows up in the repo.
+const LOCK_WAIT_MS = 2000;
+const LOCK_STALE_MS = 10000;
+
+function lockPath(root: string): string {
+  const hash = createHash("sha256").update(resolve(root)).digest("hex").slice(0, 16);
+  return join(tmpdir(), `belay-${hash}.lock`);
+}
+
+function pause(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function acquire(path: string): boolean {
+  const deadline = Date.now() + LOCK_WAIT_MS;
+  for (;;) {
+    try {
+      closeSync(openSync(path, "wx"));
+      return true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") return false;
+    }
+    try {
+      if (Date.now() - statSync(path).mtimeMs > LOCK_STALE_MS) {
+        unlinkSync(path);
+        continue;
+      }
+    } catch {
+      continue;
+    }
+    if (Date.now() > deadline) return false;
+    pause(5 + Math.floor(Math.random() * 10));
+  }
+}
+
+// Read the state, let fn change it, and write it back, as one step under the
+// lock. A lock that cannot be had within two seconds is gone around rather
+// than waited on, because a hook must never hold up the person's work. The
+// file is written only when fn changed something, and never in a folder with
+// no .belay directory.
+export function update<T>(root: string, fn: (state: State) => T): T {
+  const hasBelay = existsSync(belayDir(root));
+  const path = lockPath(root);
+  const held = hasBelay && acquire(path);
+  try {
+    const state = read(root);
+    const before = JSON.stringify(state);
+    const result = fn(state);
+    if (hasBelay && JSON.stringify(state) !== before) write(root, state);
+    return result;
+  } finally {
+    if (held) {
+      try {
+        unlinkSync(path);
+      } catch {
+        // Already gone, which is what releasing it means.
+      }
+    }
+  }
 }
 
 const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";

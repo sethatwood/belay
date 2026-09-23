@@ -56,27 +56,26 @@ export function sessionStart(input: HookInput): HookOutput {
 
 export function prompt(input: HookInput): HookOutput {
   const root = rootOf(input);
-  const state = stateFile.read(root);
-  const lines: string[] = [];
-  const step = state.step;
-  if (step === null) {
-    lines.push("belay: no step in progress");
-  } else {
-    const witnesses =
-      step.witnesses.length === 0
-        ? "none"
-        : step.witnesses.map((w) => `${w.kind} ${w.pass ? "pass" : "fail"}`).join(", ");
-    lines.push(
-      `belay: step ${step.skill} · mode ${step.mode} · hints ${step.hints} · witnesses ${witnesses}`,
-    );
-  }
-  if (state.last !== null && state.last.shown !== true) {
-    const last = state.last;
-    const tail = last.state === undefined ? "" : ` · ${last.state}`;
-    lines.push(`belay: last step ${last.skill} · ${last.result}${tail}`);
-    last.shown = true;
-    stateFile.write(root, state);
-  }
+  const lines = stateFile.update(root, (state) => {
+    const out: string[] = [];
+    const step = state.step;
+    if (step === null) {
+      out.push("belay: no step in progress");
+    } else {
+      const witnesses =
+        step.witnesses.length === 0
+          ? "none"
+          : step.witnesses.map((w) => `${w.kind} ${w.pass ? "pass" : "fail"}`).join(", ");
+      out.push(`belay: step ${step.skill} · mode ${step.mode} · hints ${step.hints} · witnesses ${witnesses}`);
+    }
+    if (state.last !== null && state.last.shown !== true) {
+      const last = state.last;
+      const tail = last.state === undefined ? "" : ` · ${last.state}`;
+      out.push(`belay: last step ${last.skill} · ${last.result}${tail}`);
+      last.shown = true;
+    }
+    return out;
+  });
   return context("UserPromptSubmit", lines.join("\n"));
 }
 
@@ -127,78 +126,61 @@ function within(root: string, path: string): string {
 
 export function attribute(input: HookInput): HookOutput {
   const root = rootOf(input);
-  const state = stateFile.read(root);
-  const step = state.step;
-  if (step === null) return null;
   const path = filePathOf(obj(input.tool_input));
   if (path.length === 0) return null;
   const rel = within(root, path);
-  if (!step.toolEdits.includes(rel)) {
-    step.toolEdits.push(rel);
-    stateFile.write(root, state);
-  }
+  stateFile.update(root, (state) => {
+    const step = state.step;
+    if (step !== null && !step.toolEdits.includes(rel)) step.toolEdits.push(rel);
+  });
   return null;
 }
 
 export function witness(input: HookInput): HookOutput {
   const root = rootOf(input);
-  const state = stateFile.read(root);
-  const step = state.step;
-  if (step === null) return null;
-
   const command = str(obj(input.tool_input).command);
   if (command.length === 0) return null;
+  const message = stateFile.update(root, (state) => witnessStep(root, state, command, input));
+  return message === null ? null : context("PostToolUse", message);
+}
+
+function witnessStep(root: string, state: stateFile.State, command: string, input: HookInput): string | null {
+  const step = state.step;
+  if (step === null) return null;
 
   // A command that writes ran through a tool call, so whatever changed in the
   // tree is Claude's. On a you step the gate stops these first; this catches
   // the ones it misses, and on a review step it is how Belay's own edits are
   // recorded when they arrive through the shell instead of an edit tool.
-  let marked = false;
   if (writePattern(command) !== null) {
     for (const file of changedSince(root, step.baseline, step.snapshot)) {
-      if (!step.toolEdits.includes(file)) {
-        step.toolEdits.push(file);
-        marked = true;
-      }
+      if (!step.toolEdits.includes(file)) step.toolEdits.push(file);
     }
   }
 
   const recognized = recognize(command);
-  if (recognized === null) {
-    if (marked) stateFile.write(root, state);
-    return null;
-  }
+  if (recognized === null) return null;
 
   const pass = passed(input.tool_response);
   const record: stateFile.Witness = { kind: recognized.kind, cmd: command, pass, at: nowIso() };
   step.witnesses.push(record);
 
-  let message: string | null = null;
-  if (step.mode === "you") {
-    if (!pass) {
-      message = `witnessed: ${recognized.label} fail`;
-    } else if (step.toolEdits.length > 0) {
-      message = `witnessed: ${recognized.label} pass · not unaided: Claude edited ${step.toolEdits.join(", ")}`;
-    } else {
-      const skillMap = map.read(root);
-      const skill = skillMap === null ? null : map.findSkill(skillMap, step.skill);
-      const accepted = skill === null ? ["test"] : skill.witness;
-      const files = changedSince(root, step.baseline, step.snapshot);
-      if (accepted.includes(recognized.kind) && files.length > 0) {
-        step.pending = {
-          witness: record,
-          commit: git(root, ["rev-parse", "--short", "HEAD"]),
-          files,
-        };
-        message = `witnessed: ${recognized.label} pass · ${step.skill}: read their diff, ask one question about it with belay_ask, then record the answer with belay_answer`;
-      } else {
-        message = `witnessed: ${recognized.label} pass`;
-      }
-    }
+  if (step.mode !== "you") return null;
+  if (!pass) return `witnessed: ${recognized.label} fail`;
+  if (step.toolEdits.length > 0) {
+    return `witnessed: ${recognized.label} pass · not unaided: Claude edited ${step.toolEdits.join(", ")}`;
   }
-
-  stateFile.write(root, state);
-  return message === null ? null : context("PostToolUse", message);
+  const skillMap = map.read(root);
+  const skill = skillMap === null ? null : map.findSkill(skillMap, step.skill);
+  const accepted = skill === null ? ["test"] : skill.witness;
+  const files = changedSince(root, step.baseline, step.snapshot);
+  if (!accepted.includes(recognized.kind) || files.length === 0) return `witnessed: ${recognized.label} pass`;
+  step.pending = {
+    witness: record,
+    commit: git(root, ["rev-parse", "--short", "HEAD"]),
+    files,
+  };
+  return `witnessed: ${recognized.label} pass · ${step.skill}: read their diff, ask one question about it with belay_ask, then record the answer with belay_answer`;
 }
 
 export function stop(input: HookInput): HookOutput {

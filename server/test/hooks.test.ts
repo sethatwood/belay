@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { attribute, gate, prompt, sessionStart, stop, witness } from "../src/lib/handlers.js";
@@ -403,6 +403,44 @@ test("a you step's unaided files are only what changed during the step", () => {
     writeFile(f.root, "src/webhooks/verify.ts", "export const verify = () => true;\n");
     witness({ cwd: f.root, tool_name: "Bash", tool_input: { command: "npx vitest run" }, tool_response: VITEST_PASS });
     assert.deepEqual(readState(f.root).step?.pending?.files, ["src/webhooks/verify.ts"]);
+  } finally {
+    f.cleanup();
+  }
+});
+
+// Claude Code runs the hooks for parallel tool calls at the same time. Each
+// one reads the state, changes it, and writes it back, so without the lock the
+// last writer wins and the other witnesses are lost.
+function runHook(name: string, input: unknown, home: string): Promise<void> {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(process.execPath, ["--import", "tsx", HOOKS_ENTRY, name], {
+      env: { ...process.env, BELAY_HOME: home },
+      stdio: ["pipe", "ignore", "ignore"],
+    });
+    child.on("error", reject);
+    child.on("close", () => resolvePromise());
+    child.stdin.end(JSON.stringify(input));
+  });
+}
+
+test("witnesses from parallel tool calls all stick, and the pending run survives", async () => {
+  const f = makeRepo();
+  try {
+    belayBeginStep("verify-webhook-signature", "reject bad signatures", false, f.root);
+    writeFile(f.root, "src/webhooks/verify.ts", "export const verify = () => true;\n");
+    const commands = ["npx vitest run", "npx tsc --noEmit", "npm run build", "npx jest", "mypy .", "pyright"];
+    await Promise.all(
+      commands.map((command) =>
+        runHook(
+          "witness",
+          { cwd: f.root, hook_event_name: "PostToolUse", tool_name: "Bash", tool_input: { command }, tool_response: VITEST_PASS },
+          f.home,
+        ),
+      ),
+    );
+    const step = readState(f.root).step;
+    assert.equal(step?.witnesses.length, commands.length);
+    assert.notEqual(step?.pending, null);
   } finally {
     f.cleanup();
   }

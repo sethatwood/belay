@@ -2980,7 +2980,7 @@ var require_compile = __commonJS({
       const schOrFunc = root.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve2.call(this, root, ref);
+      let _sch = resolve3.call(this, root, ref);
       if (_sch === void 0) {
         const schema = (_a = root.localRefs) === null || _a === void 0 ? void 0 : _a[ref];
         const { schemaId } = this.opts;
@@ -3007,7 +3007,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve2(root, ref) {
+    function resolve3(root, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3837,7 +3837,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve2(baseURI, relativeURI, options) {
+    function resolve3(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const {
         parsed: baseParsed,
@@ -4206,7 +4206,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize: normalize2,
-      resolve: resolve2,
+      resolve: resolve3,
       resolveComponent,
       equal,
       serialize,
@@ -19305,7 +19305,7 @@ var Protocol = class {
           return;
         }
         const pollInterval = task2.pollInterval ?? this._options?.defaultTaskPollInterval ?? 1e3;
-        await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
+        await new Promise((resolve3) => setTimeout(resolve3, pollInterval));
         options?.signal?.throwIfAborted();
       }
     } catch (error2) {
@@ -19322,7 +19322,7 @@ var Protocol = class {
    */
   request(request, resultSchema, options) {
     const { relatedRequestId, resumptionToken, onresumptiontoken, task, relatedTask } = options ?? {};
-    return new Promise((resolve2, reject) => {
+    return new Promise((resolve3, reject) => {
       const earlyReject = (error2) => {
         reject(error2);
       };
@@ -19400,7 +19400,7 @@ var Protocol = class {
           if (!parseResult.success) {
             reject(parseResult.error);
           } else {
-            resolve2(parseResult.data);
+            resolve3(parseResult.data);
           }
         } catch (error2) {
           reject(error2);
@@ -19661,12 +19661,12 @@ var Protocol = class {
       }
     } catch {
     }
-    return new Promise((resolve2, reject) => {
+    return new Promise((resolve3, reject) => {
       if (signal.aborted) {
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
         return;
       }
-      const timeoutId = setTimeout(resolve2, interval);
+      const timeoutId = setTimeout(resolve3, interval);
       signal.addEventListener("abort", () => {
         clearTimeout(timeoutId);
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
@@ -20757,7 +20757,7 @@ var McpServer = class {
     let task = createTaskResult.task;
     const pollInterval = task.pollInterval ?? 5e3;
     while (task.status !== "completed" && task.status !== "failed" && task.status !== "cancelled") {
-      await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
+      await new Promise((resolve3) => setTimeout(resolve3, pollInterval));
       const updatedTask = await extra.taskStore.getTask(taskId);
       if (!updatedTask) {
         throw new McpError(ErrorCode.InternalError, `Task ${taskId} not found during polling`);
@@ -21421,12 +21421,12 @@ var StdioServerTransport = class {
     this.onclose?.();
   }
   send(message) {
-    return new Promise((resolve2) => {
+    return new Promise((resolve3) => {
       const json = serializeMessage(message);
       if (this._stdout.write(json)) {
-        resolve2();
+        resolve3();
       } else {
-        this._stdout.once("drain", resolve2);
+        this._stdout.once("drain", resolve3);
       }
     });
   }
@@ -21434,7 +21434,7 @@ var StdioServerTransport = class {
 
 // src/lib/tools.ts
 import { appendFileSync as appendFileSync3, existsSync as existsSync6, mkdirSync as mkdirSync5, readFileSync as readFileSync6, writeFileSync as writeFileSync3 } from "node:fs";
-import { join as join3 } from "node:path";
+import { join as join4 } from "node:path";
 
 // src/lib/journal.ts
 import { appendFileSync, mkdirSync as mkdirSync2 } from "node:fs";
@@ -21902,8 +21902,10 @@ function starter(name) {
 }
 
 // src/lib/state.ts
-import { randomBytes } from "node:crypto";
-import { existsSync as existsSync4, mkdirSync as mkdirSync4, readFileSync as readFileSync4, writeFileSync as writeFileSync2 } from "node:fs";
+import { createHash as createHash2, randomBytes } from "node:crypto";
+import { closeSync, existsSync as existsSync4, mkdirSync as mkdirSync4, openSync, readFileSync as readFileSync4, renameSync, statSync, unlinkSync, writeFileSync as writeFileSync2 } from "node:fs";
+import { tmpdir } from "node:os";
+import { join as join2, resolve as resolve2 } from "node:path";
 var EMPTY = { version: 1, step: null, last: null };
 function read3(root) {
   const path = statePath(root);
@@ -21940,8 +21942,60 @@ function normalizeStep(raw) {
 }
 function write2(root, state) {
   mkdirSync4(belayDir(root), { recursive: true });
-  writeFileSync2(statePath(root), `${JSON.stringify(state, null, 2)}
+  const path = statePath(root);
+  const temp = `${path}.${process.pid}.tmp`;
+  writeFileSync2(temp, `${JSON.stringify(state, null, 2)}
 `, "utf8");
+  renameSync(temp, path);
+}
+var LOCK_WAIT_MS = 2e3;
+var LOCK_STALE_MS = 1e4;
+function lockPath(root) {
+  const hash = createHash2("sha256").update(resolve2(root)).digest("hex").slice(0, 16);
+  return join2(tmpdir(), `belay-${hash}.lock`);
+}
+function pause(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+function acquire(path) {
+  const deadline = Date.now() + LOCK_WAIT_MS;
+  for (; ; ) {
+    try {
+      closeSync(openSync(path, "wx"));
+      return true;
+    } catch (error2) {
+      if (error2.code !== "EEXIST") return false;
+    }
+    try {
+      if (Date.now() - statSync(path).mtimeMs > LOCK_STALE_MS) {
+        unlinkSync(path);
+        continue;
+      }
+    } catch {
+      continue;
+    }
+    if (Date.now() > deadline) return false;
+    pause(5 + Math.floor(Math.random() * 10));
+  }
+}
+function update(root, fn) {
+  const hasBelay = existsSync4(belayDir(root));
+  const path = lockPath(root);
+  const held = hasBelay && acquire(path);
+  try {
+    const state = read3(root);
+    const before = JSON.stringify(state);
+    const result = fn(state);
+    if (hasBelay && JSON.stringify(state) !== before) write2(root, state);
+    return result;
+  } finally {
+    if (held) {
+      try {
+        unlinkSync(path);
+      } catch {
+      }
+    }
+  }
 }
 var CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 function newId() {
@@ -21957,9 +22011,9 @@ function newId() {
 }
 
 // src/lib/tree.ts
-import { createHash as createHash2 } from "node:crypto";
-import { existsSync as existsSync5, readFileSync as readFileSync5, statSync } from "node:fs";
-import { join as join2 } from "node:path";
+import { createHash as createHash3 } from "node:crypto";
+import { existsSync as existsSync5, readFileSync as readFileSync5, statSync as statSync2 } from "node:fs";
+import { join as join3 } from "node:path";
 var DEPENDENCY_DIRS = /* @__PURE__ */ new Set(["node_modules", ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache"]);
 function paths(output) {
   if (output === null) return [];
@@ -21976,9 +22030,9 @@ function changedPaths(root, baseline) {
   );
 }
 function hashOf(root, path) {
-  const full = join2(root, path);
-  if (!existsSync5(full) || !statSync(full).isFile()) return "missing";
-  return createHash2("sha256").update(readFileSync5(full)).digest("hex");
+  const full = join3(root, path);
+  if (!existsSync5(full) || !statSync2(full).isFile()) return "missing";
+  return createHash3("sha256").update(readFileSync5(full)).digest("hex");
 }
 function snapshot(root, baseline) {
   const out = {};
@@ -22036,7 +22090,9 @@ function belayMap(cwd) {
 function belayBeginStep(skill, goal, followUp, cwd) {
   const ctx = context(cwd);
   if (findSkill(ctx.map, skill) === null) throw new Error(`no skill ${skill} in this repo's map`);
-  const state = read3(ctx.root);
+  return update(ctx.root, (state) => beginStep(ctx, state, skill, goal, followUp));
+}
+function beginStep(ctx, state, skill, goal, followUp) {
   const asked = followUp === true;
   const isFollowUp = asked && state.last !== null && state.last.skill === skill;
   if (state.step !== null) closeInto(state, "ended");
@@ -22065,7 +22121,6 @@ function belayBeginStep(skill, goal, followUp, cwd) {
     pending: null,
     question: null
   };
-  write2(ctx.root, state);
   const result = {
     mode,
     state: derived.state,
@@ -22081,12 +22136,13 @@ function belayBeginStep(skill, goal, followUp, cwd) {
 }
 function belayHint(skill, text, cwd) {
   const ctx = context(cwd);
-  const state = read3(ctx.root);
+  return update(ctx.root, (state) => hint(ctx, state, text));
+}
+function hint(ctx, state, text) {
   const step = state.step;
   if (step === null) throw new Error("no step in progress");
   if (step.mode !== "you") throw new Error(`hints are only given on a you step, and ${step.skill} is a ${step.mode} step`);
   step.hints += 1;
-  write2(ctx.root, state);
   const rung = Math.min(step.hints, 4);
   write(ctx.root, { kind: "hint", skill: step.skill, rung, note: text });
   if (rung === 4) return { rung: 4, of: 3, kind: "escalate" };
@@ -22099,20 +22155,23 @@ function belayHint(skill, text, cwd) {
 }
 function belayAsk(skill, question, expected, cwd) {
   const ctx = context(cwd);
-  const state = read3(ctx.root);
+  return update(ctx.root, (state) => ask(ctx, state, question, expected));
+}
+function ask(ctx, state, question, expected) {
   const step = state.step;
   if (step === null) throw new Error("no step in progress");
   if (step.mode === "you" && step.pending === null) {
     throw new Error("no witness is pending, so there is no unaided run to ask about yet");
   }
   step.question = { text: question, expected, askedAt: nowIso() };
-  write2(ctx.root, state);
   write(ctx.root, { kind: "question", skill: step.skill, mode: step.mode, note: question, expected });
   return { ok: true, skill: step.skill, mode: step.mode };
 }
 function belayAnswer(skill, correct, answer, cwd) {
   const ctx = context(cwd);
-  const state = read3(ctx.root);
+  return update(ctx.root, (state) => recordAnswer(ctx, state, correct, answer));
+}
+function recordAnswer(ctx, state, correct, answer) {
   const step = state.step;
   if (step === null) throw new Error("no step in progress");
   const question = step.question;
@@ -22126,7 +22185,6 @@ function belayAnswer(skill, correct, answer, cwd) {
       runs: derived2.runs,
       threshold: ctx.map.threshold
     });
-    write2(ctx.root, state);
     return {
       skill: step.skill,
       state: derived2.state,
@@ -22146,7 +22204,6 @@ function belayAnswer(skill, correct, answer, cwd) {
     if (!correct) {
       step.pending = null;
       step.question = null;
-      write2(ctx.root, state);
       const still = derive(read2(ctx.root, ctx.handle).entries, step.skill, ctx.map);
       return {
         skill: step.skill,
@@ -22202,7 +22259,6 @@ function belayAnswer(skill, correct, answer, cwd) {
     runs: derived.runs,
     threshold: ctx.map.threshold
   });
-  write2(ctx.root, state);
   return result;
 }
 function belayLogbook(skill, limit, cwd) {
@@ -22216,12 +22272,12 @@ function belayLogbook(skill, limit, cwd) {
 }
 function belayEndStep(reason, cwd) {
   const root = findRepoRoot(cwd);
-  const state = read3(root);
-  if (state.step === null) return { ok: true, closed: false };
-  const skill = state.step.skill;
-  closeInto(state, "ended", { reason });
-  write2(root, state);
-  return { ok: true, closed: true, skill };
+  return update(root, (state) => {
+    if (state.step === null) return { ok: true, closed: false };
+    const skill = state.step.skill;
+    closeInto(state, "ended", { reason });
+    return { ok: true, closed: true, skill };
+  });
 }
 var STYLE_SETTING = "belay:Belay";
 var IGNORE_LINES = [".belay/state.json", ".belay/*.tmp"];
@@ -22230,7 +22286,7 @@ var INSTALL_IGNORES = {
   python: [".venv/", "__pycache__/", ".pytest_cache/", ".mypy_cache/"]
 };
 function mergedSettings(root) {
-  const path = join3(root, ".claude", "settings.json");
+  const path = join4(root, ".claude", "settings.json");
   let settings = {};
   if (existsSync6(path)) {
     let raw;
@@ -22249,7 +22305,7 @@ function ignoreKey(line) {
   return line.trim().replace(/^\/+/, "").replace(/\/+$/, "");
 }
 function ignoreLines(root, lines) {
-  const path = join3(root, ".gitignore");
+  const path = join4(root, ".gitignore");
   const body = existsSync6(path) ? readFileSync6(path, "utf8") : "";
   const have = new Set(body.split("\n").map(ignoreKey));
   const missing = lines.filter((line) => !have.has(ignoreKey(line)));
@@ -22296,8 +22352,8 @@ function belayInit(name, precedents, cwd) {
   writeFileSync3(mapPath(root), `${JSON.stringify(starter2, null, 2)}
 `, "utf8");
   wrote.push(".belay/map.json");
-  mkdirSync5(join3(root, ".claude"), { recursive: true });
-  writeFileSync3(join3(root, ".claude", "settings.json"), `${JSON.stringify(settings, null, 2)}
+  mkdirSync5(join4(root, ".claude"), { recursive: true });
+  writeFileSync3(join4(root, ".claude", "settings.json"), `${JSON.stringify(settings, null, 2)}
 `, "utf8");
   wrote.push(".claude/settings.json");
   if (ignoreLines(root, [...IGNORE_LINES, ...INSTALL_IGNORES[name] ?? []])) wrote.push(".gitignore");
