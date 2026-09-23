@@ -56,6 +56,9 @@ export interface Last {
   threshold?: number;
   reason?: string;
   at: string;
+  // Set once the prompt hook has shown this result. The result stays, because
+  // a follow-up on the same skill reads it after the person's next message.
+  shown?: boolean;
 }
 
 export interface State {

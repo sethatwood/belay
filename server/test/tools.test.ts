@@ -16,7 +16,7 @@ import {
   belayMap,
 } from "../src/lib/tools.js";
 import * as maps from "../src/lib/maps.js";
-import { attribute, gate, stop, witness } from "../src/lib/handlers.js";
+import { attribute, gate, prompt, stop, witness } from "../src/lib/handlers.js";
 import { read as readState } from "../src/lib/state.js";
 import { journalPath, logbookPath, nowIso } from "../src/lib/paths.js";
 import { VITEST_PASS, makeBare, makeRepo, rec, runGit, unaidedEntry, writeFile } from "./helpers.js";
@@ -412,6 +412,20 @@ test("a follow-up on the same skill is honored, and its answer writes nothing", 
     const state = readState(f.root);
     assert.equal(state.step, null);
     assert.equal(state.last?.result, "follow-up answered");
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("a follow-up is still honored after the person's next message", () => {
+  const f = makeRepo();
+  try {
+    closeOneRun(f.root, "verify-webhook-signature", "export const verify = (a: string, b: string) => a === b;\n");
+    // Belay says "change it", the turn ends, and the person comes back with done.
+    prompt({ cwd: f.root, hook_event_name: "UserPromptSubmit", prompt: "done" });
+    const begun = rec(belayBeginStep("verify-webhook-signature", "fix the compare", true, f.root));
+    assert.equal(begun.followUp, true);
+    assert.equal(begun.note, undefined);
   } finally {
     f.cleanup();
   }

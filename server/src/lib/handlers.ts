@@ -70,11 +70,11 @@ export function prompt(input: HookInput): HookOutput {
       `belay: step ${step.skill} · mode ${step.mode} · hints ${step.hints} · witnesses ${witnesses}`,
     );
   }
-  if (state.last !== null) {
+  if (state.last !== null && state.last.shown !== true) {
     const last = state.last;
     const tail = last.state === undefined ? "" : ` · ${last.state}`;
     lines.push(`belay: last step ${last.skill} · ${last.result}${tail}`);
-    state.last = null;
+    last.shown = true;
     stateFile.write(root, state);
   }
   return context("UserPromptSubmit", lines.join("\n"));

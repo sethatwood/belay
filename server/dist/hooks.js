@@ -747,11 +747,11 @@ function prompt(input) {
       `belay: step ${step.skill} \xB7 mode ${step.mode} \xB7 hints ${step.hints} \xB7 witnesses ${witnesses}`
     );
   }
-  if (state.last !== null) {
+  if (state.last !== null && state.last.shown !== true) {
     const last = state.last;
     const tail = last.state === void 0 ? "" : ` \xB7 ${last.state}`;
     lines.push(`belay: last step ${last.skill} \xB7 ${last.result}${tail}`);
-    state.last = null;
+    last.shown = true;
     write(root, state);
   }
   return context("UserPromptSubmit", lines.join("\n"));
