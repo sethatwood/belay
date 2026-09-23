@@ -11,7 +11,7 @@
       "displayName": "Belay",
       "source": "./",
       "description": "You climb. It holds the rope. You do the work, it coaches, and you earn delegation one skill at a time.",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "category": "learning",
       "tags": [
         "learning",
