@@ -21,6 +21,9 @@ export interface Pending {
   witness: Witness;
   commit: string | null;
   files: string[];
+  // Git's blob id for each file's content when the witness passed. Absent in
+  // steps opened before 0.2.0.
+  blobs?: Record<string, string>;
 }
 
 export interface Question {

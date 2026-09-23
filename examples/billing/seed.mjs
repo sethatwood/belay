@@ -8,6 +8,7 @@
 // "anonymous" if empty.
 
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -50,11 +51,11 @@ const lines = runs.map(([t, commit, question]) =>
     t,
     kind: "unaided",
     skill: "add-route",
-    hints: 0,
     witness: { kind: "test", cmd: "npx vitest run", pass: true },
     commit,
     files: ["src/routes/billing.ts"],
-    question,
+    // The logbook keeps a digest of the question, the way the server writes it.
+    question: `sha256:${createHash("sha256").update(question).digest("hex")}`,
   }),
 );
 

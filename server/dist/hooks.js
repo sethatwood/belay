@@ -884,6 +884,18 @@ function hashOf(root, path) {
   if (!existsSync5(full) || !statSync2(full).isFile()) return "missing";
   return createHash2("sha256").update(readFileSync5(full)).digest("hex");
 }
+function blobIds(root, files) {
+  const present = files.filter((p) => existsSync5(join3(root, p)) && statSync2(join3(root, p)).isFile());
+  if (present.length === 0) return {};
+  const out = git(root, ["hash-object", "--", ...present]);
+  if (out === null) return {};
+  const ids = out.split("\n");
+  const blobs = {};
+  present.forEach((path, i) => {
+    if (/^[0-9a-f]{40,64}$/.test(ids[i] ?? "")) blobs[path] = ids[i];
+  });
+  return blobs;
+}
 function changedSince(root, baseline, snap) {
   return changedPaths(root, baseline).filter((path) => snap[path] !== hashOf(root, path));
 }
@@ -1072,8 +1084,9 @@ function witnessStep(root, state, command, event, input) {
   if (hit === void 0 || files.length === 0) return `witnessed: ${seen}`;
   step.pending = {
     witness: hit,
-    commit: git(root, ["rev-parse", "--short", "HEAD"]),
-    files
+    commit: git(root, ["rev-parse", "HEAD"]),
+    files,
+    blobs: blobIds(root, files)
   };
   return `witnessed: ${seen} \xB7 ${step.skill}: read their diff, ask one question about it with belay_ask, then record the answer with belay_answer`;
 }

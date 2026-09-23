@@ -7,7 +7,7 @@ import * as map from "./map.js";
 import * as stateFile from "./state.js";
 import { STYLE_SETTING, findRepoRoot, git, homeBelayDir, homeRoot, nowIso, projectDir, readHandle } from "./paths.js";
 import { passed, recognizeAll } from "./witness.js";
-import { changedSince } from "./tree.js";
+import { blobIds, changedSince } from "./tree.js";
 import { writePattern } from "./writes.js";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
@@ -237,8 +237,9 @@ function witnessStep(root: string, state: stateFile.State, command: string, even
   if (hit === undefined || files.length === 0) return `witnessed: ${seen}`;
   step.pending = {
     witness: hit,
-    commit: git(root, ["rev-parse", "--short", "HEAD"]),
+    commit: git(root, ["rev-parse", "HEAD"]),
     files,
+    blobs: blobIds(root, files),
   };
   return `witnessed: ${seen} · ${step.skill}: read their diff, ask one question about it with belay_ask, then record the answer with belay_answer`;
 }

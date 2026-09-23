@@ -19,6 +19,7 @@ import * as maps from "../src/lib/maps.js";
 import { attribute, gate, prompt, stop, witness } from "../src/lib/handlers.js";
 import { read as readState } from "../src/lib/state.js";
 import { journalPath, logbookPath, nowIso } from "../src/lib/paths.js";
+import { questionDigest } from "../src/lib/logbook.js";
 import { VITEST_PASS, makeBare, makeRepo, rec, runGit, unaidedEntry, writeFile } from "./helpers.js";
 
 function lines(root: string, handle: string): Record<string, unknown>[] {
@@ -350,9 +351,16 @@ test("the acceptance sequence ends with unaided, earned, review, in that order",
         ["review", "add-route"],
       ],
     );
-    assert.equal(tail[0].hints, 1);
-    assert.equal(tail[0].question, "Line 1 is a plain string compare. What should it be?");
+    // The logbook says what was witnessed, and keeps the struggle out.
+    assert.equal(tail[0].hints, undefined);
+    const asked = "Line 1 is a plain string compare. What should it be?";
+    assert.equal(tail[0].question, questionDigest(asked));
+    assert.ok(!JSON.stringify(tail[0]).includes("plain string compare"));
+    assert.match(journalText(f.root), new RegExp(`"digest":"${questionDigest(asked)}"`));
     assert.deepEqual(tail[0].files, ["src/webhooks/verify.ts"]);
+    // The run is bound to the exact content that passed, and to a full commit.
+    assert.match(String(tail[0].commit), /^[0-9a-f]{40}$/);
+    assert.deepEqual(tail[0].blobs, { "src/webhooks/verify.ts": runGit(f.root, ["hash-object", "src/webhooks/verify.ts"]) });
     assert.equal(tail[2].correct, true);
     assert.equal(readState(f.root).step, null);
   } finally {

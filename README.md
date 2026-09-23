@@ -65,7 +65,7 @@ vitest  12 passed  · witnessed
 belay   Tests pass. Line 14 is a plain string compare. It returns on the first
         wrong byte, which leaks how close a guess got. What should it be?
 you     > a constant-time compare over the raw bytes
-logbook unaided  verify-webhook-signature  · 1 hint  · 1 of 3
+logbook unaided  verify-webhook-signature  · 1 of 3
 belay   Right. Change it. Now the route.
 card    earned  add-route  · You've added routes alone three times.
         From now on I'll write them and you review.
@@ -109,12 +109,12 @@ Belay keeps three files in your repo and one outside it.
 The logbook is plain text. You can read it, and so can anyone you hand it to.
 
 ```
-{"t":"2026-10-04T14:12:09Z","kind":"unaided","skill":"verify-webhook-signature","hints":1,"witness":{"kind":"test","cmd":"npx vitest run","pass":true},"commit":"a1b2c3d","files":["src/webhooks/verify.ts"],"question":"Line 14 is a plain string compare. What should it be?"}
+{"t":"2026-10-04T14:12:09Z","kind":"unaided","skill":"verify-webhook-signature","witness":{"kind":"test","cmd":"npx vitest run","pass":true},"commit":"9f8e7d6c5b4a39281706f5e4d3c2b1a098765432","files":["src/webhooks/verify.ts"],"blobs":{"src/webhooks/verify.ts":"3b18e512dba79e4c8300dd08aeb37f8e728b8dad"},"question":"sha256:1ba6214f034c90bfec911a199f42fa943adcf62901a5a0ddf84b69e8cc026f3b"}
 {"t":"2026-10-04T14:20:41Z","kind":"earned","skill":"add-route"}
 {"t":"2026-10-04T14:25:03Z","kind":"review","skill":"add-route","correct":true}
 ```
 
-You own it. Your team sees what you can do. The hints and your answers, in your words, stay in a journal on your machine.
+You own it. Your team sees what you can do. The hints, the questions, and your answers stay in a journal on your machine.
 
 ## No job yet? Open an empty folder
 

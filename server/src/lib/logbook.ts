@@ -2,6 +2,7 @@
 // JSON object per line, never edited and never reordered. This module appends,
 // reads, and derives a skill's state by replaying the lines in order.
 
+import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { findSkill, type SkillMap } from "./map.js";
 import { logbookDir, logbookPath, nowIso } from "./paths.js";
@@ -68,6 +69,15 @@ export function append(root: string, handle: string, entry: Omit<Entry, "t"> & {
   mkdirSync(logbookDir(root), { recursive: true });
   appendFileSync(logbookPath(root, handle), `${JSON.stringify(full)}\n`, "utf8");
   return full;
+}
+
+// The logbook holds a digest of the question an unaided run answered, not its
+// text, because the question names what the person got wrong. The text stays
+// in the private journal beside the same digest, so the person can show
+// anyone which question a run answered. Entries written before 0.2.0 hold
+// the text itself, and both count the same.
+export function questionDigest(text: string): string {
+  return `sha256:${createHash("sha256").update(text).digest("hex")}`;
 }
 
 function countsAsRun(entry: Entry, accepted: string[]): boolean {

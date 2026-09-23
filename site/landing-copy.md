@@ -51,7 +51,7 @@ you    > done
 vitest 12 passed  · witnessed
 belay  Tests pass. Line 14 is a plain string compare. It returns on the first wrong byte, which leaks how close a guess got. What should it be?
 you    > a constant-time compare over the raw bytes
-logbookunaided  verify-webhook-signature  · 1 hint  · 1 of 3
+logbookunaided  verify-webhook-signature  · 1 of 3
 belay  Right. Change it. Now the route.
 card   earned  add-route  · You've added routes alone three times. From now on I'll write them and you review.
 edit   src/routes/webhooks.ts  +22 −0  · belay
@@ -120,13 +120,13 @@ The map is the list of skills your work needs. Write a migration. Add an endpoin
 08  release-rollback                not started
 ```
 
-**You own it.** Your team sees what you can do. The hints and your answers, in your words, stay in a journal on your machine.
+**You own it.** Your team sees what you can do. The hints, the questions, and your answers stay in a journal on your machine.
 
 It's a plain text file in your repo. You can read it, and so can anyone you hand it to.
 
 ```
 .belay/logbook/<you>.jsonl                        a plain file in your repo
-2026-10-04  verify-webhook-signature   unaided, 1 hint   witnessed: vitest pass
+2026-10-04  verify-webhook-signature   unaided           witnessed: vitest pass
 2026-10-04  add-route                  earned            3 unaided
 2026-10-04  add-route                  review            correct
 2026-10-06  idempotency-key            unaided           witnessed: vitest pass

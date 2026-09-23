@@ -46,6 +46,23 @@ export function snapshot(root: string, baseline: string | null): Snapshot {
   return out;
 }
 
+// Git's own id for each file's content: the id the file gets in a commit's
+// tree once it is committed as it stands. A later check can look for these in
+// the commit that lands the work and know the witnessed code is the code that
+// landed. A file deleted during the step has none.
+export function blobIds(root: string, files: string[]): Record<string, string> {
+  const present = files.filter((p) => existsSync(join(root, p)) && statSync(join(root, p)).isFile());
+  if (present.length === 0) return {};
+  const out = git(root, ["hash-object", "--", ...present]);
+  if (out === null) return {};
+  const ids = out.split("\n");
+  const blobs: Record<string, string> = {};
+  present.forEach((path, i) => {
+    if (/^[0-9a-f]{40,64}$/.test(ids[i] ?? "")) blobs[path] = ids[i];
+  });
+  return blobs;
+}
+
 // The files that are new or different since the snapshot was taken.
 export function changedSince(root: string, baseline: string | null, snap: Snapshot): string[] {
   return changedPaths(root, baseline).filter((path) => snap[path] !== hashOf(root, path));

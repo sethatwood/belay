@@ -21572,6 +21572,7 @@ function write(root, entry, at) {
 }
 
 // src/lib/logbook.ts
+import { createHash as createHash2 } from "node:crypto";
 import { appendFileSync as appendFileSync2, existsSync as existsSync3, mkdirSync as mkdirSync3, readFileSync as readFileSync3 } from "node:fs";
 
 // src/lib/map.ts
@@ -21667,6 +21668,9 @@ function append(root, handle, entry) {
   appendFileSync2(logbookPath(root, handle), `${JSON.stringify(full)}
 `, "utf8");
   return full;
+}
+function questionDigest(text) {
+  return `sha256:${createHash2("sha256").update(text).digest("hex")}`;
 }
 function countsAsRun(entry, accepted) {
   const witness = entry.witness;
@@ -21934,7 +21938,7 @@ function starter(name) {
 }
 
 // src/lib/state.ts
-import { createHash as createHash2, randomBytes } from "node:crypto";
+import { createHash as createHash3, randomBytes } from "node:crypto";
 import { closeSync, existsSync as existsSync4, mkdirSync as mkdirSync4, openSync, readFileSync as readFileSync4, renameSync, statSync, unlinkSync, writeFileSync as writeFileSync2 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join as join2, resolve as resolve2 } from "node:path";
@@ -21984,7 +21988,7 @@ function write2(root, state) {
 var LOCK_WAIT_MS = 2e3;
 var LOCK_STALE_MS = 1e4;
 function lockPath(root) {
-  const hash = createHash2("sha256").update(resolve2(root)).digest("hex").slice(0, 16);
+  const hash = createHash3("sha256").update(resolve2(root)).digest("hex").slice(0, 16);
   return join2(tmpdir(), `belay-${hash}.lock`);
 }
 function pause(ms) {
@@ -22044,7 +22048,7 @@ function newId() {
 }
 
 // src/lib/tree.ts
-import { createHash as createHash3 } from "node:crypto";
+import { createHash as createHash4 } from "node:crypto";
 import { existsSync as existsSync5, readFileSync as readFileSync5, statSync as statSync2 } from "node:fs";
 import { join as join3 } from "node:path";
 var DEPENDENCY_DIRS = /* @__PURE__ */ new Set(["node_modules", ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache"]);
@@ -22065,7 +22069,7 @@ function changedPaths(root, baseline) {
 function hashOf(root, path) {
   const full = join3(root, path);
   if (!existsSync5(full) || !statSync2(full).isFile()) return "missing";
-  return createHash3("sha256").update(readFileSync5(full)).digest("hex");
+  return createHash4("sha256").update(readFileSync5(full)).digest("hex");
 }
 function snapshot(root, baseline) {
   const out = {};
@@ -22142,14 +22146,15 @@ function beginStep(ctx, state, skill, goal, followUp) {
     derived = derive(after.entries, skill, ctx.map);
   }
   const mode = modeFor(derived.state);
+  const baseline = git(ctx.root, ["rev-parse", "HEAD"]);
   state.step = {
     id: newId(),
     skill,
     mode,
     goal,
     startedAt: nowIso(),
-    baseline: git(ctx.root, ["rev-parse", "--short", "HEAD"]),
-    snapshot: snapshot(ctx.root, git(ctx.root, ["rev-parse", "--short", "HEAD"])),
+    baseline,
+    snapshot: snapshot(ctx.root, baseline),
     followUp: isFollowUp,
     hints: 0,
     toolEdits: [],
@@ -22204,7 +22209,14 @@ function ask(ctx, state, skill, question, expected) {
     throw new Error("no witness is pending, so there is no unaided run to ask about yet");
   }
   step.question = { text: question, expected, askedAt: nowIso() };
-  write(ctx.root, { kind: "question", skill: step.skill, mode: step.mode, note: question, expected });
+  write(ctx.root, {
+    kind: "question",
+    skill: step.skill,
+    mode: step.mode,
+    note: question,
+    expected,
+    digest: questionDigest(question)
+  });
   return { ok: true, skill: step.skill, mode: step.mode };
 }
 function belayAnswer(skill, correct, answer, cwd) {
@@ -22215,7 +22227,7 @@ function recordAnswer(ctx, state, skill, correct, answer) {
   const step = openStep(state, skill);
   const question = step.question;
   if (question === null) throw new Error("no question is stored, so call belay_ask first");
-  write(ctx.root, { kind: "answer", skill: step.skill, mode: step.mode, correct, note: answer });
+  write(ctx.root, { kind: "answer", skill: step.skill, mode: step.mode, correct, hints: step.hints, note: answer });
   const written = [];
   if (step.followUp) {
     const derived2 = derive(read2(ctx.root, ctx.handle).entries, step.skill, ctx.map);
@@ -22255,15 +22267,16 @@ function recordAnswer(ctx, state, skill, correct, answer) {
         stepOpen: true
       };
     }
-    append(ctx.root, ctx.handle, {
+    const entry = {
       kind: "unaided",
       skill: step.skill,
-      hints: step.hints,
       witness: { kind: pending.witness.kind, cmd: pending.witness.cmd, pass: pending.witness.pass },
       commit: pending.commit,
       files: pending.files,
-      question: question.text
-    });
+      question: questionDigest(question.text)
+    };
+    if (pending.blobs !== void 0) entry.blobs = pending.blobs;
+    append(ctx.root, ctx.handle, entry);
     written.push("unaided");
   } else {
     append(ctx.root, ctx.handle, { kind: "review", skill: step.skill, correct });

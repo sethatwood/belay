@@ -99,14 +99,15 @@ function beginStep(ctx: Ctx, state: stateFile.State, skill: string, goal: string
   }
 
   const mode = modeFor(derived.state);
+  const baseline = git(ctx.root, ["rev-parse", "HEAD"]);
   state.step = {
     id: stateFile.newId(),
     skill,
     mode,
     goal,
     startedAt: nowIso(),
-    baseline: git(ctx.root, ["rev-parse", "--short", "HEAD"]),
-    snapshot: snapshot(ctx.root, git(ctx.root, ["rev-parse", "--short", "HEAD"])),
+    baseline,
+    snapshot: snapshot(ctx.root, baseline),
     followUp: isFollowUp,
     hints: 0,
     toolEdits: [],
@@ -173,7 +174,14 @@ function ask(ctx: Ctx, state: stateFile.State, skill: string, question: string, 
   }
 
   step.question = { text: question, expected, askedAt: nowIso() };
-  journal.write(ctx.root, { kind: "question", skill: step.skill, mode: step.mode, note: question, expected });
+  journal.write(ctx.root, {
+    kind: "question",
+    skill: step.skill,
+    mode: step.mode,
+    note: question,
+    expected,
+    digest: logbook.questionDigest(question),
+  });
   return { ok: true, skill: step.skill, mode: step.mode };
 }
 
@@ -187,7 +195,7 @@ function recordAnswer(ctx: Ctx, state: stateFile.State, skill: string, correct: 
   const question = step.question;
   if (question === null) throw new Error("no question is stored, so call belay_ask first");
 
-  journal.write(ctx.root, { kind: "answer", skill: step.skill, mode: step.mode, correct, note: answer });
+  journal.write(ctx.root, { kind: "answer", skill: step.skill, mode: step.mode, correct, hints: step.hints, note: answer });
 
   const written: string[] = [];
 
@@ -236,15 +244,19 @@ function recordAnswer(ctx: Ctx, state: stateFile.State, skill: string, correct: 
       };
     }
 
-    logbook.append(ctx.root, ctx.handle, {
+    // What the team can see: which skill, what witnessed it, and exactly what
+    // content was witnessed. The hints taken and the question's text stay in
+    // the journal.
+    const entry: Omit<logbook.Entry, "t"> = {
       kind: "unaided",
       skill: step.skill,
-      hints: step.hints,
       witness: { kind: pending.witness.kind, cmd: pending.witness.cmd, pass: pending.witness.pass },
       commit: pending.commit,
       files: pending.files,
-      question: question.text,
-    });
+      question: logbook.questionDigest(question.text),
+    };
+    if (pending.blobs !== undefined) entry.blobs = pending.blobs;
+    logbook.append(ctx.root, ctx.handle, entry);
     written.push("unaided");
   } else {
     logbook.append(ctx.root, ctx.handle, { kind: "review", skill: step.skill, correct });

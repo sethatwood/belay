@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { append, derive, read, type Entry } from "../src/lib/logbook.js";
+import { append, derive, questionDigest, read, type Entry } from "../src/lib/logbook.js";
 import { makeRepo, testMap, unaidedEntry } from "./helpers.js";
 
 const map = testMap();
@@ -31,6 +31,15 @@ test("rule 2: a witnessed unaided run with a question counts, and three earn the
   assert.equal(three.state, "earned");
   assert.equal(three.runs, 3);
   assert.equal(three.needsEarned, true);
+});
+
+test("rule 2: a run holding the question's digest counts the same as one holding its text", () => {
+  const older = unaidedEntry("add-route", { hints: 2 }) as unknown as Entry;
+  const newer = { ...unaidedEntry("add-route"), question: questionDigest("What should it return?") } as unknown as Entry;
+  delete (newer as Record<string, unknown>).hints;
+  const d = derive([older, newer, newer], "add-route", testMap());
+  assert.equal(d.state, "earned");
+  assert.equal(d.runs, 3);
 });
 
 test("rule 2: the earned entry is owed only until it is written", () => {
