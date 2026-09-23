@@ -135,9 +135,24 @@ A senior plus an agent out-ships a senior plus a junior, and the junior costs th
 /plugin install belay@belay
 ```
 
-Then, in a repo, `/belay:learn` or `/belay:team`. Either one writes the map, a `.claude/settings.json` that turns Belay's output style on for everyone who opens the repo, and the gitignore line for the step file.
+Then, in a repo, `/belay:learn` or `/belay:team`. Either one writes the map, a `.claude/settings.json` that turns Belay's output style on for everyone who opens the repo, and gitignore lines for the step file and installed packages. In a folder with no git repo, it runs `git init` first.
 
 Needs Claude Code 2.1.251 or newer, Node 20 or newer, and git. Works in the terminal and in the VS Code extension, Cursor included.
+
+### Update
+
+Claude Code leaves auto-update off for third-party marketplaces like Belay's, so an install stays on its version until you update it. From a terminal:
+
+```
+claude plugin marketplace update belay
+claude plugin update belay@belay
+```
+
+Then restart Claude Code. For an install at project or local scope, add `--scope project` or `--scope local` to the second command. Inside a session, run `/plugin marketplace update belay`, update belay from the `/plugin` menu, and run `/reload-plugins`.
+
+To stay current from then on, open `/plugin`, choose Marketplaces, choose belay, and select Enable auto-update. Claude Code then checks for updates in the background after each session starts.
+
+Logbooks and maps carry over between versions unchanged.
 
 To turn it off for yourself in one repo, without touching the committed settings:
 
