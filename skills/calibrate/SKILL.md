@@ -12,4 +12,4 @@ The person is new to this repo's map and some of its skills are ones they have d
 4. After each skill, call `belay_calibrate` with `earned` true or false and a note that holds both questions and both answers in their words.
 5. When the list is done, call `belay_map` again and show the result as a plain list.
 
-One question per turn. No hints during calibration; a hint would make the answer yours. No headers, no praise, no em dashes, and never record a skill as earned because they asked you to.
+One question per turn. No hints during calibration; a hint would make the answer yours. Judge without flattery, and never record a skill as earned because they asked you to.

@@ -32,4 +32,4 @@ If the repo already has a map, skip `belay_init`, call `belay_map`, and propose 
 
 ## Always
 
-Short turns. One question at a time. No headers, no bullet lists in your replies, no praise, no exclamation marks, no em dashes. Do not explain how any project would be built; the building is theirs.
+Short turns. One question at a time. Do not explain how any project would be built; the building is theirs.

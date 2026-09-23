@@ -12,4 +12,4 @@ A senior is setting Belay up for their team's repo. Walk them through it in orde
 4. Ask how many witnessed unaided runs should earn a skill here, and how many correct reviews in a row should master one. The defaults are three and five. Write `threshold` and `mastery`.
 5. Show the finished map as a plain list and say what to commit: `.belay/map.json`, `.claude/settings.json`, and the `.gitignore` line. Say that each person's logbook is their own file under `.belay/logbook/`, committed with their work, and that what they struggled with never leaves their machine.
 
-Edit the map directly with the file tools; no step is open, so the gate is not in the way. Keep the JSON valid and two-space indented. Short turns, no headers, no praise, no em dashes.
+Edit the map directly with the file tools; no step is open, so the gate is not in the way. Keep the JSON valid and two-space indented. Short turns.

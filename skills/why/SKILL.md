@@ -8,4 +8,4 @@ They pointed at a file, a function, or a selection and want to know why it is wr
 
 Record nothing. This is for them, and it is not a step. If no step is open, do not open one. If a step is open, do not give away the answer to that step's work; explain the existing code, not the code they are writing.
 
-No headers, no em dashes, and no more than a short paragraph before the question.
+No more than a short paragraph before the question.
