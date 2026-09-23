@@ -5,7 +5,7 @@
 import * as logbook from "./logbook.js";
 import * as map from "./map.js";
 import * as stateFile from "./state.js";
-import { findRepoRoot, git, nowIso, readHandle } from "./paths.js";
+import { findRepoRoot, git, nowIso, projectDir, readHandle } from "./paths.js";
 import { passed, recognizeAll } from "./witness.js";
 import { changedSince } from "./tree.js";
 import { writePattern } from "./writes.js";
@@ -26,7 +26,7 @@ function obj(value: unknown): Record<string, unknown> {
 }
 
 function rootOf(input: HookInput): string {
-  return findRepoRoot(str(input.cwd));
+  return findRepoRoot(projectDir(str(input.cwd)));
 }
 
 function context(event: string, additionalContext: string): HookOutput {

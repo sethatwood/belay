@@ -21456,6 +21456,10 @@ function homeBelayDir() {
 function configPath() {
   return join(homeBelayDir(), "config.json");
 }
+function projectDir(fallback) {
+  const dir = process.env.CLAUDE_PROJECT_DIR;
+  return dir !== void 0 && dir.length > 0 ? dir : fallback;
+}
 function isHomeDir(dir) {
   const at = resolve(dir);
   return at === homeRoot() || at === resolve(homedir());
@@ -22042,8 +22046,11 @@ function snapshot(root, baseline) {
 
 // src/lib/tools.ts
 var HINT_KINDS = ["concept", "repo", "pseudocode"];
+function rootFor(cwd) {
+  return findRepoRoot(cwd ?? projectDir());
+}
 function context(cwd) {
-  const root = findRepoRoot(cwd);
+  const root = rootFor(cwd);
   if (isHomeDir(root)) throw new Error("Belay does not run in the home directory; open a project folder");
   const skillMap = read(root);
   if (skillMap === null) throw new Error("this repo has no .belay/map.json");
@@ -22262,7 +22269,7 @@ function recordAnswer(ctx, state, correct, answer) {
   return result;
 }
 function belayLogbook(skill, limit, cwd) {
-  const root = findRepoRoot(cwd);
+  const root = rootFor(cwd);
   const handle = readHandle(root);
   const { entries, malformed } = read2(root, handle);
   const picked = skill === void 0 ? entries : entries.filter((e) => e.skill === skill);
@@ -22271,7 +22278,7 @@ function belayLogbook(skill, limit, cwd) {
   return { handle, malformed, count: capped.length, entries: capped };
 }
 function belayEndStep(reason, cwd) {
-  const root = findRepoRoot(cwd);
+  const root = rootFor(cwd);
   return update(root, (state) => {
     if (state.step === null) return { ok: true, closed: false };
     const skill = state.step.skill;
@@ -22323,7 +22330,7 @@ function ensureRepo(root) {
   return true;
 }
 function belayInit(name, precedents, cwd) {
-  const root = findRepoRoot(cwd);
+  const root = rootFor(cwd);
   if (isHomeDir(root)) {
     throw new Error("Belay sets up a project folder, not the home directory; make a folder for the project and start there");
   }

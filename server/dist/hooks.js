@@ -21,6 +21,10 @@ function homeBelayDir() {
 function configPath() {
   return join(homeBelayDir(), "config.json");
 }
+function projectDir(fallback) {
+  const dir = process.env.CLAUDE_PROJECT_DIR;
+  return dir !== void 0 && dir.length > 0 ? dir : fallback;
+}
 function isHomeDir(dir) {
   const at = resolve(dir);
   return at === homeRoot() || at === resolve(homedir());
@@ -891,7 +895,7 @@ function obj(value) {
   return value !== null && typeof value === "object" ? value : {};
 }
 function rootOf(input) {
-  return findRepoRoot(str(input.cwd));
+  return findRepoRoot(projectDir(str(input.cwd)));
 }
 function context(event, additionalContext) {
   return { hookSpecificOutput: { hookEventName: event, additionalContext } };

@@ -9,7 +9,7 @@ import * as logbook from "./logbook.js";
 import * as map from "./map.js";
 import * as maps from "./maps.js";
 import * as stateFile from "./state.js";
-import { belayDir, findRepoRoot, git, isHomeDir, mapPath, nowIso, readHandle } from "./paths.js";
+import { belayDir, findRepoRoot, git, isHomeDir, mapPath, nowIso, projectDir, readHandle } from "./paths.js";
 import { snapshot } from "./tree.js";
 
 const HINT_KINDS = ["concept", "repo", "pseudocode"] as const;
@@ -20,8 +20,14 @@ interface Ctx {
   map: map.SkillMap;
 }
 
+// The tests pass a cwd. The MCP server passes nothing, and the repo is found
+// from where Claude Code started the session.
+function rootFor(cwd?: string): string {
+  return findRepoRoot(cwd ?? projectDir());
+}
+
 function context(cwd?: string): Ctx {
-  const root = findRepoRoot(cwd);
+  const root = rootFor(cwd);
   if (isHomeDir(root)) throw new Error("Belay does not run in the home directory; open a project folder");
   const skillMap = map.read(root);
   if (skillMap === null) throw new Error("this repo has no .belay/map.json");
@@ -274,7 +280,7 @@ function recordAnswer(ctx: Ctx, state: stateFile.State, correct: boolean, answer
 }
 
 export function belayLogbook(skill?: string, limit?: number, cwd?: string): unknown {
-  const root = findRepoRoot(cwd);
+  const root = rootFor(cwd);
   const handle = readHandle(root);
   const { entries, malformed } = logbook.read(root, handle);
   const picked = skill === undefined ? entries : entries.filter((e) => e.skill === skill);
@@ -284,7 +290,7 @@ export function belayLogbook(skill?: string, limit?: number, cwd?: string): unkn
 }
 
 export function belayEndStep(reason: string, cwd?: string): unknown {
-  const root = findRepoRoot(cwd);
+  const root = rootFor(cwd);
   return stateFile.update(root, (state) => {
     if (state.step === null) return { ok: true, closed: false };
     const skill = state.step.skill;
@@ -352,7 +358,7 @@ function ensureRepo(root: string): boolean {
 }
 
 export function belayInit(name: string, precedents?: Record<string, string[]>, cwd?: string): unknown {
-  const root = findRepoRoot(cwd);
+  const root = rootFor(cwd);
   if (isHomeDir(root)) {
     throw new Error("Belay sets up a project folder, not the home directory; make a folder for the project and start there");
   }

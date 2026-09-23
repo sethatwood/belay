@@ -23,6 +23,16 @@ export function configPath(): string {
   return join(homeBelayDir(), "config.json");
 }
 
+// Where Claude Code started the session. It stays put when Claude runs cd or
+// enters a worktree, and both the hooks and the MCP server are given it, so
+// resolving from here keeps the two sides on one state file. A hook's own cwd
+// follows cd, and a cd into a submodule would otherwise leave the gate reading
+// a state file the server never writes.
+export function projectDir(fallback?: string): string | undefined {
+  const dir = process.env.CLAUDE_PROJECT_DIR;
+  return dir !== undefined && dir.length > 0 ? dir : fallback;
+}
+
 // The home directory is never a repo root. It holds ~/.belay, the private
 // side, and sometimes a .git for dotfiles, and neither makes it a project.
 export function isHomeDir(dir: string): boolean {

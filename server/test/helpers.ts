@@ -62,6 +62,10 @@ export function testMap(): SkillMap {
   return normalize(TEST_MAP);
 }
 
+// A test run inside a Claude Code session could inherit the session's
+// project directory, which the code under test prefers to the cwd it is given.
+delete process.env.CLAUDE_PROJECT_DIR;
+
 const GIT_ENV = {
   ...process.env,
   GIT_CONFIG_GLOBAL: "/dev/null",

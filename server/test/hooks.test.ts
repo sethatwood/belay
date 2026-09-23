@@ -535,3 +535,24 @@ test("a type check and a test run in one line are two witnesses, and the test se
     f.cleanup();
   }
 });
+
+test("the hooks resolve the repo from the session's project directory, not from a cd", () => {
+  const f = makeRepo();
+  try {
+    belayBeginStep("verify-webhook-signature", "reject bad signatures", false, f.root);
+    // Claude cds into a submodule, which has a .git of its own.
+    const sub = join(f.root, "vendor", "lib");
+    writeFile(sub, ".git", "gitdir: ../../.git/modules/lib\n");
+    process.env.CLAUDE_PROJECT_DIR = f.root;
+    const out = gate({
+      cwd: sub,
+      hook_event_name: "PreToolUse",
+      tool_name: "Edit",
+      tool_input: { file_path: join(f.root, "src/webhooks/verify.ts") },
+    });
+    assert.equal(rec(rec(out).hookSpecificOutput).permissionDecision, "deny");
+  } finally {
+    delete process.env.CLAUDE_PROJECT_DIR;
+    f.cleanup();
+  }
+});
