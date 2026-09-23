@@ -3,22 +3,22 @@
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/session-start.sh", "timeout": 10 }
+          { "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/server/dist/hooks.js", "session-start"], "timeout": 10 }
         ]
       }
     ],
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/prompt.sh", "timeout": 10 }
+          { "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/server/dist/hooks.js", "prompt"], "timeout": 10 }
         ]
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell",
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/gate.sh", "timeout": 10 }
+          { "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/server/dist/hooks.js", "gate"], "timeout": 10 }
         ]
       }
     ],
@@ -26,28 +26,28 @@
       {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit",
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/attribute.sh", "timeout": 10 }
+          { "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/server/dist/hooks.js", "attribute"], "timeout": 10 }
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "Bash|PowerShell",
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/witness.sh", "timeout": 30 }
+          { "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/server/dist/hooks.js", "witness"], "timeout": 30 }
         ]
       }
     ],
     "PostToolUseFailure": [
       {
-        "matcher": "Bash",
+        "matcher": "Bash|PowerShell",
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/witness.sh", "timeout": 30 }
+          { "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/server/dist/hooks.js", "witness"], "timeout": 30 }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/stop.sh", "timeout": 10 }
+          { "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/server/dist/hooks.js", "stop"], "timeout": 10 }
         ]
       }
     ]

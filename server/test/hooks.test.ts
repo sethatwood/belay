@@ -76,11 +76,27 @@ test("session-start flags a map left in the home directory by an earlier version
   }
 });
 
-test("session-start in a repo with no map offers the two skills", () => {
+test("session-start in an empty folder offers /belay:learn", () => {
   const f = makeRepo();
   try {
-    const out = ctx(sessionStart({ cwd: f.home, hook_event_name: "SessionStart", source: "startup" }));
-    assert.match(String(out.additionalContext), /no map.*\/belay:learn.*\/belay:team/s);
+    const empty = join(f.base, "habit-tracker");
+    runGit(f.base, ["init", "-q", "habit-tracker"]);
+    const out = ctx(sessionStart({ cwd: empty, hook_event_name: "SessionStart", source: "startup" }));
+    assert.match(String(out.additionalContext), /this folder is empty\. Offer \/belay:learn/);
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("session-start in a codebase with no map keeps Belay out of the way", () => {
+  const f = makeRepo();
+  try {
+    const code = join(f.base, "day-job");
+    runGit(f.base, ["init", "-q", "day-job"]);
+    writeFile(code, "src/index.ts", "export {};\n");
+    const text = String(ctx(sessionStart({ cwd: code, hook_event_name: "SessionStart", source: "startup" })).additionalContext);
+    assert.match(text, /no map, so Belay is off here\. Mention it only if the person asks/);
+    assert.doesNotMatch(text, /^Offer/m);
   } finally {
     f.cleanup();
   }
@@ -626,6 +642,59 @@ test("a session in the home directory ignores what an earlier version left in ~/
     assert.match(text, /set itself up in the home directory by mistake/);
     const out = gate({ cwd: f.home, hook_event_name: "PreToolUse", tool_name: "Edit", tool_input: { file_path: join(f.home, "notes.txt") } });
     assert.equal(out, null);
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("the gate reads PowerShell, Claude Code's main shell on Windows", () => {
+  const f = makeRepo();
+  try {
+    belayBeginStep("verify-webhook-signature", "reject bad signatures", false, f.root);
+    const run = (command: string) =>
+      gate({ cwd: f.root, hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command } });
+    for (const command of [
+      "Set-Content -Path src/webhooks/verify.ts -Value 'x'",
+      "'x' | Out-File src/webhooks/verify.ts",
+      "echo x > src/webhooks/verify.ts",
+      "[System.IO.File]::WriteAllText('src/webhooks/verify.ts', 'x')",
+      "Invoke-WebRequest https://example.com/v.ts -OutFile src/webhooks/verify.ts",
+      "ni src/webhooks/verify.ts",
+      "npm install zod",
+    ]) {
+      assert.equal(rec(rec(run(command)).hookSpecificOutput).permissionDecision, "deny", command);
+    }
+    for (const command of ["npx vitest run", "Get-Content src/billing/charge.ts", "git status", "npx vitest run > $null"]) {
+      assert.equal(run(command), null, command);
+    }
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("a PowerShell test run is a witness, like a Bash one", () => {
+  const f = makeRepo();
+  try {
+    belayBeginStep("verify-webhook-signature", "reject bad signatures", false, f.root);
+    writeFile(f.root, "src/webhooks/verify.ts", "export const verify = () => true;\n");
+    witness({ cwd: f.root, hook_event_name: "PostToolUse", tool_name: "PowerShell", tool_input: { command: "npx vitest run" }, tool_response: VITEST_PASS });
+    assert.deepEqual(readState(f.root).step?.pending?.files, ["src/webhooks/verify.ts"]);
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("on a you step, Claude may still write files outside the repo, and they are never counted", () => {
+  const f = makeRepo();
+  try {
+    belayBeginStep("verify-webhook-signature", "reject bad signatures", false, f.root);
+    const plan = join(f.base, "plans", "webhooks.md");
+    const out = gate({ cwd: f.root, hook_event_name: "PreToolUse", tool_name: "Write", tool_input: { file_path: plan, content: "x" } });
+    assert.equal(out, null);
+    attribute({ cwd: f.root, hook_event_name: "PostToolUse", tool_name: "Write", tool_input: { file_path: plan, content: "x" } });
+    assert.deepEqual(readState(f.root).step?.toolEdits, []);
+    const inside = gate({ cwd: f.root, hook_event_name: "PreToolUse", tool_name: "Write", tool_input: { file_path: join(f.root, "src/x/../webhooks/verify.ts") } });
+    assert.equal(rec(rec(inside).hookSpecificOutput).permissionDecision, "deny");
   } finally {
     f.cleanup();
   }

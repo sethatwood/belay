@@ -479,7 +479,7 @@ function scan(command) {
         continue;
       }
       const { target, next } = readTarget(i);
-      if (target.length > 0 && target !== "/dev/null") redirect = true;
+      if (target.length > 0 && target !== "/dev/null" && target.toLowerCase() !== "$null") redirect = true;
       i = next;
       continue;
     }
@@ -737,6 +737,53 @@ function writePattern(command) {
   }
   return null;
 }
+var POWERSHELL_WRITERS = /* @__PURE__ */ new Set([
+  "set-content",
+  "add-content",
+  "clear-content",
+  "out-file",
+  "tee-object",
+  "new-item",
+  "remove-item",
+  "copy-item",
+  "move-item",
+  "rename-item",
+  "expand-archive",
+  "sc",
+  "ac",
+  "clc",
+  "ni",
+  "ri",
+  "rm",
+  "del",
+  "erase",
+  "rd",
+  "rmdir",
+  "cp",
+  "copy",
+  "cpi",
+  "mv",
+  "move",
+  "mi",
+  "ren",
+  "rni",
+  "mkdir",
+  "md",
+  "tee"
+]);
+var POWERSHELL_FETCHERS = /* @__PURE__ */ new Set(["invoke-webrequest", "iwr", "invoke-restmethod", "irm", "start-bitstransfer", "curl", "wget"]);
+function powershellWritePattern(command) {
+  if (/\[(?:system\.)?io\.(?:file|directory)\]::(?:write|append|copy|move|delete|create|replace)/i.test(command)) {
+    return ".NET file write";
+  }
+  for (const segment of scan(command).segments) {
+    const name = base(segment.tokens[0] ?? "").toLowerCase();
+    if (POWERSHELL_WRITERS.has(name)) return name;
+    const args = segment.tokens.slice(1).map((a) => a.toLowerCase());
+    if (POWERSHELL_FETCHERS.has(name) && args.some((a) => a === "-outfile" || a === "-destination")) return "download";
+  }
+  return writePattern(command);
+}
 
 // src/lib/witness.ts
 var DIRECT = {
@@ -901,9 +948,12 @@ function changedSince(root, baseline, snap) {
 }
 
 // src/lib/handlers.ts
-import { existsSync as existsSync6, readFileSync as readFileSync6 } from "node:fs";
-import { isAbsolute, join as join4, relative } from "node:path";
+import { existsSync as existsSync6, readFileSync as readFileSync6, readdirSync } from "node:fs";
+import { isAbsolute, join as join4, relative, resolve as resolve3 } from "node:path";
 var EDIT_TOOLS = /* @__PURE__ */ new Set(["Edit", "Write", "MultiEdit", "NotebookEdit"]);
+function writesThrough(tool, command) {
+  return tool === "PowerShell" ? powershellWritePattern(command) : writePattern(command);
+}
 function str(value) {
   return typeof value === "string" ? value : "";
 }
@@ -945,6 +995,13 @@ function styleWarning(root) {
   }
   return `${from} sets outputStyle to ${style}, which overrides ${STYLE_SETTING}, so the coaching contract is off in this repo. Tell the person, and offer to change that line to ${STYLE_SETTING} or remove it.`;
 }
+function emptyFolder(root) {
+  try {
+    return readdirSync(root).every((name) => name.startsWith("."));
+  } catch {
+    return false;
+  }
+}
 function homeWarning() {
   if (!existsSync6(join4(homeBelayDir(), "map.json"))) return null;
   return `An earlier Belay version set itself up in the home directory by mistake: ~/.belay/map.json should not exist. Tell the person, and offer to remove ~/.belay/map.json, ~/.belay/state.json, and ~/.belay/logbook if they are there, the "outputStyle": "${STYLE_SETTING}" line in ~/.claude/settings.json, and the .belay/state.json line in ~/.gitignore. The config and the journal under ~/.belay stay.`;
@@ -954,7 +1011,9 @@ function sessionStart(input) {
   const skillMap = read(root);
   const lines = [];
   if (skillMap === null) {
-    lines.push("Belay is installed and this repo has no map. Offer /belay:learn to learn something, or /belay:team to set up a team map.");
+    lines.push(
+      emptyFolder(root) && !isHomeDir(root) ? "Belay is installed and this folder is empty. Offer /belay:learn to start a project and learn as you build it." : "Belay is installed, and this repo has no map, so Belay is off here. Mention it only if the person asks to learn or to set Belay up: /belay:learn to learn, /belay:team for a team map."
+    );
   } else {
     const handle = readHandle(root);
     const { entries } = read2(root, handle);
@@ -1008,14 +1067,15 @@ function gate(input) {
   const step = read3(root).step;
   if (step === null || step.mode !== "you") return null;
   const tool = str(input.tool_name);
-  if (tool === "Bash") {
-    const pattern = writePattern(str(obj(input.tool_input).command));
+  if (tool === "Bash" || tool === "PowerShell") {
+    const pattern = writesThrough(tool, str(obj(input.tool_input).command));
     if (pattern === null) return null;
     return deny(
       `${step.skill} is unearned. You write it. That command matches the write pattern ${pattern}. Want a hint?`
     );
   }
   if (EDIT_TOOLS.has(tool)) {
+    if (outside(root, filePathOf(obj(input.tool_input)))) return null;
     return deny(`${step.skill} is unearned. You write it. Want a hint?`);
   }
   return null;
@@ -1027,6 +1087,11 @@ function filePathOf(toolInput) {
   }
   return "";
 }
+function outside(root, path) {
+  if (path.length === 0) return false;
+  const rel = relative(root, resolve3(root, path));
+  return rel.startsWith("..") || isAbsolute(rel);
+}
 function within(root, path) {
   if (!isAbsolute(path)) return path;
   const rel = relative(root, path);
@@ -1035,7 +1100,7 @@ function within(root, path) {
 function attribute(input) {
   const root = rootOf(input);
   const path = filePathOf(obj(input.tool_input));
-  if (path.length === 0) return null;
+  if (path.length === 0 || outside(root, path)) return null;
   const rel = within(root, path);
   update(root, (state) => {
     const step = state.step;
@@ -1048,13 +1113,14 @@ function witness(input) {
   const command = str(obj(input.tool_input).command);
   if (command.length === 0) return null;
   const event = str(input.hook_event_name) === "PostToolUseFailure" ? "PostToolUseFailure" : "PostToolUse";
-  const message = update(root, (state) => witnessStep(root, state, command, event, input));
+  const tool = str(input.tool_name);
+  const message = update(root, (state) => witnessStep(root, state, command, tool, event, input));
   return message === null ? null : context(event, message);
 }
-function witnessStep(root, state, command, event, input) {
+function witnessStep(root, state, command, tool, event, input) {
   const step = state.step;
   if (step === null) return null;
-  if (writePattern(command) !== null) {
+  if (writesThrough(tool, command) !== null) {
     for (const file of changedSince(root, step.baseline, step.snapshot)) {
       if (!step.toolEdits.includes(file)) step.toolEdits.push(file);
     }

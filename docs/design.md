@@ -143,14 +143,14 @@ There is no tool that records a witness. Only the witness hook does that, and Cl
 
 ## The hooks
 
-All six are thin shell wrappers that run `node ${CLAUDE_PLUGIN_ROOT}/server/dist/hooks.js <name>`, so hooks and server share one library. Each reads the hook event JSON from stdin. Each exits 0 in every case; blocking is done through JSON on stdout, never through exit codes, so a crash in a hook never blocks work by accident.
+All six run `node ${CLAUDE_PLUGIN_ROOT}/server/dist/hooks.js <name>` in exec form: Claude Code spawns `node` directly with the path and the name as its arguments. No shell is involved on any platform, so no path needs quoting and nothing needs bash, which a Windows machine without Git Bash lacks. Hooks and server share one library. Each reads the hook event JSON from stdin. Each exits 0 in every case; blocking is done through JSON on stdout, never through exit codes, so a crash in a hook never blocks work by accident.
 
 The hooks and the server find the repo the same way: from `CLAUDE_PROJECT_DIR`, the directory the session started in, falling back to the event's `cwd`. A hook's `cwd` follows Claude's `cd`, and a `cd` into a submodule would otherwise put the gate on a state file the server never writes. Walking up for `.belay` or `.git` stops below the home directory, which is never a repo: it holds `~/.belay`, the private side.
 
 **`session-start`**
 Reads: whether `.belay/map.json` exists, and the output style in effect.
 Writes: nothing.
-Returns, with a map: `additionalContext` naming the handle, the counts of skills by state, and the instruction to call `belay_begin_step` before each step of work. Without a map: `additionalContext` saying Belay is installed and this repo has no map, and to offer `/belay:learn` for learning or `/belay:team` for setting up a team map.
+Returns, with a map: `additionalContext` naming the handle, the counts of skills by state, and the instruction to call `belay_begin_step` before each step of work. Without a map, in an empty folder: `additionalContext` saying Belay is installed and to offer `/belay:learn`, since that is where a new project starts. Without a map in a folder that holds anything: `additionalContext` saying Belay is off here and to mention `/belay:learn` or `/belay:team` only if the person asks, because a plugin installed for one repo loads in every repo.
 With a map, it also reads `outputStyle` the way Claude Code does, from `.claude/settings.local.json`, then `.claude/settings.json`, then `~/.claude/settings.json`. When the style in effect is not `belay:Belay`, it adds a line naming the file and the value, so Claude tells the person the contract is off. `/output-style` writes the local file, so one run of it silently outranks the committed setting.
 In any repo, when `~/.belay/map.json` exists, it adds a line asking Claude to offer to remove what version 0.1.0 wrote when it mistook the home directory for a repo.
 
@@ -159,10 +159,10 @@ Reads: `.belay/map.json`, `state.json`.
 Writes: marks `last` shown after showing it once.
 Returns: nothing in a repo with no map. Otherwise `additionalContext` with one line: the open step's skill, mode, hints, and witnesses so far, or "no step in progress", plus `last` if it has not been shown.
 
-**`gate`** (PreToolUse on Edit, Write, MultiEdit, NotebookEdit, Bash)
+**`gate`** (PreToolUse on Edit, Write, MultiEdit, NotebookEdit, Bash, PowerShell)
 Reads: `state.json`.
 Writes: nothing.
-Returns: nothing when there is no open step or the mode is `review` or `quiet`. On a `you` step, for the edit tools, denies with reason "`<skill>` is unearned. You write it. Want a hint?" For Bash on a `you` step, denies when the command matches a write pattern and allows otherwise. Write patterns: `>`, `>>`, or `>|` not followed by `&` and not targeting `/dev/null`; heredocs; `tee`; `sed -i`, `perl -i`, `awk -i inplace`; `cp`, `mv`, `rm`, `mkdir`, `touch`, `ln`, `rsync`, `install`, `truncate`, `dd`, `unzip`, `shred`, `ed`; `tar x`; `find` with `-delete` or `-exec`; `curl` or `wget` saving to a file; a shell or `eval` given a command string, read inside; inline code through `node -e`, `python -c` (any version), `bun -e`, `deno eval`, `tsx -e`, `ruby -e`, `perl -e`, `php -r`; a formatter or linter told to rewrite files (`prettier --write`, `eslint --fix`, `ruff --fix` or `ruff format`, `black`, `isort`, `biome --write`); git subcommands that rewrite the working tree (`apply`, `restore`, `checkout`, `switch`, `clean`, `merge`, `rebase`, `stash` other than `list` and `show`, `reset --hard`, and the rest); `patch`; `npx create-`, `npm init`, `npm install` and equivalents, including `pip install`, `uv add`, `uv pip install`, `poetry add`, `pipx install`. Wrappers (`sudo`, `env`, `xargs`, `timeout`) and runners (`npx`, `bunx`, `pnpm exec`, `yarn dlx`, `uv run`, `poetry run`) are read through to the command they run. Read-only git, test, build, type-check, `ls`, `cat`, `grep`, `find` are allowed. A denied Bash command's reason names the pattern that matched.
+Returns: nothing when there is no open step or the mode is `review` or `quiet`. On a `you` step, for the edit tools, denies with reason "`<skill>` is unearned. You write it. Want a hint?", unless the file is outside the repo: a plan or a memory note is never the person's work. For Bash and PowerShell on a `you` step, denies when the command matches a write pattern and allows otherwise. PowerShell is Claude Code's main shell on Windows, and its table adds the cmdlets and aliases that write, move, or delete files (`Set-Content`, `Out-File`, `New-Item`, `Remove-Item`, `Copy-Item`, `Move-Item`, and the rest), .NET file calls, and `Invoke-WebRequest -OutFile`, on top of every Bash pattern PowerShell runs the same way. Write patterns: `>`, `>>`, or `>|` not followed by `&` and not targeting `/dev/null`; heredocs; `tee`; `sed -i`, `perl -i`, `awk -i inplace`; `cp`, `mv`, `rm`, `mkdir`, `touch`, `ln`, `rsync`, `install`, `truncate`, `dd`, `unzip`, `shred`, `ed`; `tar x`; `find` with `-delete` or `-exec`; `curl` or `wget` saving to a file; a shell or `eval` given a command string, read inside; inline code through `node -e`, `python -c` (any version), `bun -e`, `deno eval`, `tsx -e`, `ruby -e`, `perl -e`, `php -r`; a formatter or linter told to rewrite files (`prettier --write`, `eslint --fix`, `ruff --fix` or `ruff format`, `black`, `isort`, `biome --write`); git subcommands that rewrite the working tree (`apply`, `restore`, `checkout`, `switch`, `clean`, `merge`, `rebase`, `stash` other than `list` and `show`, `reset --hard`, and the rest); `patch`; `npx create-`, `npm init`, `npm install` and equivalents, including `pip install`, `uv add`, `uv pip install`, `poetry add`, `pipx install`. Wrappers (`sudo`, `env`, `xargs`, `timeout`) and runners (`npx`, `bunx`, `pnpm exec`, `yarn dlx`, `uv run`, `poetry run`) are read through to the command they run. Read-only git, test, build, type-check, `ls`, `cat`, `grep`, `find` are allowed. A denied Bash command's reason names the pattern that matched.
 
 Denial shape:
 
@@ -172,11 +172,11 @@ Denial shape:
 
 **`attribute`** (PostToolUse on the edit tools)
 Reads: `state.json`, the tool input's file path.
-Writes: appends the path to `step.toolEdits` when a step is open.
+Writes: appends the path to `step.toolEdits` when a step is open and the file is inside the repo.
 Returns: nothing.
 Claude often writes files through Bash rather than an edit tool, so this hook is not the only record of Claude's edits. The witness hook covers the shell side.
 
-**`witness`** (PostToolUse and PostToolUseFailure on Bash)
+**`witness`** (PostToolUse and PostToolUseFailure on Bash and PowerShell)
 Reads: `state.json`, the command, the event, the tool response or the error.
 First, whatever the command: if it matches a write pattern, every file changed against `baseline` is added to `step.toolEdits`, because a write that ran through a tool call is Claude's. On a `you` step the gate should have stopped it, and this spoils the unaided run if it did not. On a `review` step this is how Belay's own shell-written edits get recorded.
 Then it recognizes witnesses by the command word of each command in the line, after wrappers and runners, so `echo vitest` or `cat vitest.config.ts` is never one: `vitest`, `jest`, `node --test`, `npm test`, `pnpm test`, `yarn test`, `bun test`, a `test` or `test:*` script, `pytest`, `python -m pytest`, `python -m unittest` are `test`; `tsc`, `mypy`, `pyright`, a `typecheck` script are `types`; a `build` or `build:*` script, `vite build`, `next build`, `esbuild` are `build`. A line can hold more than one, and each is recorded: `tsc && vitest` is two.

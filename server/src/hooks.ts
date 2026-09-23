@@ -1,6 +1,30 @@
-// The hook entry point. All six shell wrappers run this file with one name:
+// The hook entry point. hooks/hooks.json runs this file in exec form, as
+// node with the bundle's path and one hook name, so no shell is involved on
+// any platform and no path needs quoting:
 //
-//   node hooks.js session-start | prompt | gate | attribute | witness | stop
+//   session-start  Once per session. With a map: Belay is active, the handle,
+//                  the skills counted by state, call belay_begin_step before
+//                  each step, and a warning when the output style in effect
+//                  is not belay:Belay. In an empty folder: offer /belay:learn.
+//                  In a codebase with no map: stay out of the way.
+//   prompt         Every message the person sends. The step in progress
+//                  (skill, mode, hints, witnesses) and the last step's result
+//                  once, so Claude answers in the right mode unreminded.
+//   gate           Before Edit, Write, MultiEdit, NotebookEdit, Bash, and
+//                  PowerShell. On a step the person does themselves, denies
+//                  the edit tools inside the repo and the shell commands that
+//                  write files, and tells Claude why, so the hint ladder starts.
+//   attribute      After a file edit inside the repo. Notes the file as
+//                  Claude's. On a you step that list stays empty, or the run
+//                  is not unaided.
+//   witness        After every Bash or PowerShell command, on PostToolUse when
+//                  it exited 0 and PostToolUseFailure when it did not. Records
+//                  test runs, builds, and type checks, and turns a passing one
+//                  over the person's own diff into a pending unaided run.
+//                  Belay never records a witness by hand, only here.
+//   stop           When Claude is about to stop. Keeps the turn open until the
+//                  step's one question is stored, then lets it end, because
+//                  the answer needs the person's turn.
 //
 // It reads the hook event JSON from stdin, runs the handler, and prints the
 // handler's JSON to stdout when there is any. It exits 0 in every case,

@@ -172,7 +172,8 @@ function scan(command: string): Scan {
         continue;
       }
       const { target, next } = readTarget(i);
-      if (target.length > 0 && target !== "/dev/null") redirect = true;
+      // /dev/null, and PowerShell's $null, take the output and keep nothing.
+      if (target.length > 0 && target !== "/dev/null" && target.toLowerCase() !== "$null") redirect = true;
       i = next;
       continue;
     }
@@ -476,4 +477,31 @@ export function writePattern(command: string): string | null {
     if (pattern !== null) return pattern;
   }
   return null;
+}
+
+// PowerShell cmdlets and their aliases that write, move, or delete files.
+// Names are matched without regard to case, as PowerShell matches them.
+const POWERSHELL_WRITERS = new Set([
+  "set-content", "add-content", "clear-content", "out-file", "tee-object", "new-item", "remove-item",
+  "copy-item", "move-item", "rename-item", "expand-archive", "sc", "ac", "clc", "ni", "ri", "rm", "del",
+  "erase", "rd", "rmdir", "cp", "copy", "cpi", "mv", "move", "mi", "ren", "rni", "mkdir", "md", "tee",
+]);
+const POWERSHELL_FETCHERS = new Set(["invoke-webrequest", "iwr", "invoke-restmethod", "irm", "start-bitstransfer", "curl", "wget"]);
+
+// The write pattern for a command run through Claude Code's PowerShell tool,
+// which is the main shell on Windows. It reads the PowerShell cmdlets, the
+// .NET file calls, and downloads saved to a file, then everything the Bash
+// table covers that PowerShell runs the same way: redirects, git, npm, pip,
+// inline interpreters, and formatters.
+export function powershellWritePattern(command: string): string | null {
+  if (/\[(?:system\.)?io\.(?:file|directory)\]::(?:write|append|copy|move|delete|create|replace)/i.test(command)) {
+    return ".NET file write";
+  }
+  for (const segment of scan(command).segments) {
+    const name = base(segment.tokens[0] ?? "").toLowerCase();
+    if (POWERSHELL_WRITERS.has(name)) return name;
+    const args = segment.tokens.slice(1).map((a) => a.toLowerCase());
+    if (POWERSHELL_FETCHERS.has(name) && args.some((a) => a === "-outfile" || a === "-destination")) return "download";
+  }
+  return writePattern(command);
 }
