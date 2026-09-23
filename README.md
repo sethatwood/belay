@@ -10,13 +10,13 @@
   <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-F5EFE4?style=flat-square&labelColor=12100E">
 </p>
 
-A Claude Code plugin for people learning to build software. You do the work. It coaches, runs the tests, and keeps the record. You earn delegation one skill at a time.
+A Claude Code plugin for people learning to build software, and for engineers new to a codebase. You do the work. It coaches, runs the tests, and keeps the record. You earn delegation one skill at a time.
 
 ## Why
 
 Entry-level work was how a person became a senior. You did small real things badly, someone senior corrected you, and a few years later you weren't junior. Agents do the small real things now, and the senior's attention goes to the agent.
 
-Every coding assistant works the same way: it does the work, you watch. Anthropic [studied that](https://www.anthropic.com/research/AI-assistance-coding-skills) in January 2026. Fifty-two engineers, one unfamiliar library. The group with AI help scored 17 points lower on comprehension, worst on debugging. The ones who kept their skill were the ones who asked why.
+Every coding assistant works the same way: it does the work, you watch. Anthropic [studied that](https://www.anthropic.com/research/AI-assistance-coding-skills) in January 2026. Fifty-two engineers, one unfamiliar library. The group with AI help scored 17 points lower on comprehension, worst on debugging. The ones who kept their skill were the ones who asked why. A new codebase puts an engineer of any level in the same place: code they don't know yet, and an assistant that will write it for them.
 
 Belay is the assistant where you do the work and it watches.
 
@@ -120,13 +120,17 @@ You own it. Your team sees what you can do. The hints, the questions, and your a
 
 `/belay:learn` asks what you want to learn and a few questions about your life, then proposes three projects you'd actually use, each sized to the time you have and labeled with the skills it teaches. If what you want to learn needs skills the starter map doesn't name, Belay adds them. You pick one. Every skill starts unearned, so the first weeks are heavy coaching, the way a first job used to be. The first skill on every map is writing a test.
 
-In a codebase that already exists, the same command maps the repo, finds the skills it uses that you haven't earned, and proposes real changes that teach them, each pointing at the file where it was done before. If there's no real place to learn a skill, Belay says so.
+## New to a team? Open its repo
+
+An engineer with ten years of experience is new again in their first week on a team. `/belay:learn` in the team's repo maps it, finds the skills it uses that you haven't earned, and proposes real changes that teach them, each pointing at the file where it was done before. If there's no real place to learn a skill, Belay says so. When the team has run `/belay:team`, the map also holds the codebase's own skills, each with files that show it done well.
+
+`/belay:calibrate` covers what you already know. Name the skills you've done before, answer two questions a senior would ask about each, and the ones you answer well start earned.
 
 ## For teams
 
 A senior plus an agent out-ships a senior plus a junior, and the junior costs the senior an afternoon a day. With Belay carrying your standards, a junior costs a senior about an hour a week.
 
-`/belay:team` adds your codebase's own skills to the map, marks the paths that always need a human co-sign, and sets how many unaided runs earn a skill. Each person's logbook is their own file, committed with their work, so the team map is a pure function of what's in the repo. Version one records co-sign zones; the CI check that enforces them is next.
+`/belay:team` adds your codebase's own skills to the map, marks the paths that always need a human co-sign, and sets how many unaided runs earn a skill. Each person's logbook is their own file, committed with their work, so the team map is a pure function of what's in the repo. An experienced hire runs `/belay:calibrate`, and the skills they show they've done before start earned. The codebase's own skills they earn here, like everyone else. Version one records co-sign zones; the CI check that enforces them is next.
 
 ## Install
 

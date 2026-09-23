@@ -28,7 +28,7 @@ To secure a climber by controlling the rope, so that a fall is caught.
 
 You climb. It holds the rope.
 
-A Claude Code plugin for people learning to build software. You do the work. It coaches, runs the tests, and keeps the record. You earn delegation one skill at a time.
+A Claude Code plugin for people learning to build software, and for engineers new to a codebase. You do the work. It coaches, runs the tests, and keeps the record. You earn delegation one skill at a time.
 
 [ GitHub ]   /plugin marketplace add sethatwood/belay · /plugin install belay@belay
 
@@ -66,7 +66,7 @@ belay  Right. Merged.
 
 Entry-level work was how a person became a senior. You did small real things badly, someone senior corrected you, and a few years later you weren't junior. Agents do the small real things now, and the senior's attention goes to the agent.
 
-Every coding assistant works the same way: it does the work, you watch. Anthropic studied that in January. Fifty-two engineers, one unfamiliar library. The group with AI help scored 17 points lower on comprehension, worst on debugging. The ones who kept their skill were the ones who asked why. *(link to the study)*
+Every coding assistant works the same way: it does the work, you watch. Anthropic studied that in January. Fifty-two engineers, one unfamiliar library. The group with AI help scored 17 points lower on comprehension, worst on debugging. The ones who kept their skill were the ones who asked why. A new codebase puts an engineer of any level in the same place: code they don't know yet, and an assistant that will write it for them. *(link to the study)*
 
 *(Figure: a ladder with the bottom four rungs missing. Caption: "Entry-level work. Four years of small real things and correction. Agents do them now.")*
 
@@ -138,7 +138,9 @@ It's a plain text file in your repo. You can read it, and so can anyone you hand
 
 Say what you want to learn. A language, a stack, or a thing you want to be able to build. Belay asks a few questions about your life, then proposes three projects you'd actually use, each sized to the time you have, each labeled with the skills it teaches. You pick one. Every skill starts unearned, so the first weeks are heavy coaching, the way a first job used to be. The first skill on every map is writing a test, so there's a witness from day one. By the end, Belay writes the boilerplate and you do the parts that matter.
 
-In a codebase that already exists, the same thing. Say what you want to learn here. Belay maps the repo, finds the skills it uses that you haven't earned, and proposes real changes that teach them: a missing test, a pattern the codebase already uses that you haven't done, a gap someone senior would have fixed. Each one points at the file where it was done before. If there's no real place to learn a skill, Belay says so.
+**New to a team? Open its repo.** An engineer with ten years of experience is new again in their first week on a team. Say what you want to learn there. Belay maps the repo, finds the skills it uses that you haven't earned, and proposes real changes that teach them: a missing test, a pattern the codebase already uses that you haven't done, a gap someone senior would have fixed. Each one points at the file where it was done before. If there's no real place to learn a skill, Belay says so.
+
+What you already know, you calibrate. Name the skills you've done before, answer two questions a senior would ask about each, and the ones you answer well start earned.
 
 *(Visual: a second, shorter terminal, played once.)*
 
@@ -170,6 +172,8 @@ A senior plus an agent out-ships a senior plus a junior, and the junior costs th
 With Belay carrying your standards, a junior costs a senior about an hour a week. Belay coaches with precedents from your own codebase.
 
 Your team adds its own skills to the map, marks the zones that always need a human co-sign, and sets how many unaided runs earn a skill. When the hints run out, Belay writes the senior a ten-minute question instead of an afternoon of pairing.
+
+An experienced hire runs calibration, and the skills they show they've done before start earned. The codebase's own skills they earn here, like everyone else.
 
 *(Panels: gated zones and the team map, each with a note:)*
 
