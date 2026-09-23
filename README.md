@@ -85,7 +85,7 @@ belay   Right. Merged.
 </picture>
 
 - **The gate.** A hook runs before every edit and every shell command. On a skill you haven't earned it denies the write and hands Claude the reason, so the hint ladder starts instead. It reads inside `bash -c`, treats a heredoc, a `sed -i`, or an inline `node -e` as a write, and knows which git commands rewrite the tree.
-- **The witness.** A test run, a build, or a type check signs every entry in your logbook. You sign it too, by answering one question about your diff. Belay can't sign its own: there is no tool that lets it record a run.
+- **The witness.** A test run, a build, or a type check signs every unaided run in your logbook. You sign it too, by answering one question about your diff. Belay can't sign its own: there is no tool that lets it record a run.
 - **The record.** A skill's state is computed from the logbook every time it's needed. Nothing enters the logbook without a witness and a human.
 
 What can't be enforced: nobody can prove you had no other help. The witness proves the tests passed on a diff you made. The question and, on a team, a co-sign are the human checks.
@@ -114,7 +114,7 @@ The logbook is plain text. You can read it, and so can anyone you hand it to.
 {"t":"2026-10-04T14:25:03Z","kind":"review","skill":"add-route","correct":true}
 ```
 
-You own it. Your team sees what you can do. What you struggled with stays yours unless you share it.
+You own it. Your team sees what you can do. The hints and your answers, in your words, stay in a journal on your machine.
 
 ## No job yet? Open an empty folder
 
@@ -161,7 +161,8 @@ That writes an override into `.claude/settings.local.json`. Use `--scope project
 The session above comes from [examples/billing](examples/billing), a small TypeScript service with one failing test whose module you write. Install the plugin, then:
 
 ```
-cd examples/billing && npm install && npm run seed
+git clone https://github.com/sethatwood/belay && cd belay/examples/billing
+npm install && npm run seed
 git init && git add -A && git commit -m "billing example"
 claude
 ```
@@ -189,7 +190,7 @@ Version one, in build. TypeScript, JavaScript, and Python.
 cd server && npm install && npm test && npm run build
 ```
 
-To try it before it's published, in a repo whose `.claude/settings.json` sets `"outputStyle": "belay:Belay"`:
+To run it from a clone, in a repo whose `.claude/settings.json` sets `"outputStyle": "belay:Belay"`:
 
 ```
 claude --plugin-dir /path/to/belay
