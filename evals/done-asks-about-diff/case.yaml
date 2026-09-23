@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: done-asks-about-diff
+tags: [contract, witness]
+context:
+  scaffold_script: fixture.sh

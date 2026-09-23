@@ -231,6 +231,10 @@ Done means the logbook ends with these lines, in this order: `unaided` for verif
 
 Run on September 21, 2026, in the terminal, and it passed with that extra line. Three things it showed. The style has to be on, by its namespaced name, or Claude calls the tools and lectures the solution anyway. Claude classifies the skill itself and held add-endpoint-with-validation for the webhook endpoint when the person argued for add-route, which is right. Claude wrote its own files through Bash, so attribution reads the tree rather than trusting the edit tools.
 
+### As evals
+
+Since 0.2.0 the session runs as evals, in `evals/`. Each case starts a fresh copy of the billing example at one turn: asked for the verifier on an unearned skill, told to just write it, back with "done" and a plain `===` in their diff, and asked for a route on the skill the seeded runs earn. `claude plugin eval` runs each case in isolation, with and without the plugin, and reports the difference. An isolated run loads no project settings, so Belay's output style is off there: the with-plugin arm measures the hooks and the tools alone. `evals/session.sh` runs one case through `claude -p` with the repo's settings read, as a person's session does, and applies the case's regex and file checks, so the contract itself is measured. Both keep Belay's private side in a scratch home.
+
 ## The style setting
 
 A plugin's output style is namespaced by the plugin name, so the setting that turns the contract on is `"outputStyle": "belay:Belay"`. Claude Code's `force-for-plugin` frontmatter key would turn a plugin's style on wherever the plugin is enabled, overriding the person's own setting. Belay does not set it: for a user-scope install that would put the contract on every repo, map or not. The repo's committed `.claude/settings.json` carries the setting, so the contract is ambient for everyone who opens the repo, and `/belay:learn` and `/belay:team` write it. Without the style, Claude still calls the tools but explains the whole solution on an unearned step, which the first acceptance run showed.

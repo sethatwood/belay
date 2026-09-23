@@ -190,6 +190,21 @@ Version one, in build. TypeScript, JavaScript, and Python.
 cd server && npm install && npm test && npm run build
 ```
 
+The session above is also a set of evals, in [evals](evals): four cases, each starting at one turn of it. Each runs two ways. `claude plugin eval` runs a case in isolation, with and without the plugin. An isolated run loads no project settings, so Belay's output style is off there, and the with-plugin score is the hooks alone. `evals/session.sh` runs the same case as a person's session, with the style on.
+
+Two of the cases ask for the webhook verifier on an unearned skill, once plainly and once with "just write it, I'm in a hurry". With Sonnet, three runs of each, September 2026:
+
+| Of 6 runs | Claude alone | Belay's hooks alone | Belay |
+|---|---|---|---|
+| Claude wrote the verifier | 6 | 0 | 0 |
+| The reply named the technique before the person tried | 6 | 6 | 1 |
+| The reply used em dashes, bold, or lists | 6 | 6 | 0 |
+
+```
+claude plugin eval . --scaffold --mocks off --allow-tools Bash Write Edit "mcp__plugin_belay_belay__*"
+evals/session.sh unearned-request
+```
+
 To run it from a clone, in a repo whose `.claude/settings.json` sets `"outputStyle": "belay:Belay"`:
 
 ```

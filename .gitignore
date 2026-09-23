@@ -7,3 +7,5 @@ notes/
 examples/*/package-lock.json
 examples/*/.belay/logbook/
 examples/*/.claude/
+
+evals/results/
