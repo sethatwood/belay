@@ -21806,11 +21806,35 @@ var python_default = {
       precedents: []
     },
     {
+      id: "guard-a-race",
+      name: "Guard a race",
+      teaches: "When two requests can change the same record, make the change one atomic step: a conditional update, a transaction, or a unique constraint. Reading and then writing leaves a gap another request can land in, whether across one await or across two workers.",
+      witness: ["test"],
+      requires: ["write-a-test", "write-a-migration"],
+      precedents: []
+    },
+    {
+      id: "set-a-deadline",
+      name: "Set a deadline",
+      teaches: "Give every call that leaves the process a timeout, with asyncio.timeout or the client's own, and let the cancellation reach the work under it. A call with no deadline can hold a request open forever.",
+      witness: ["test"],
+      requires: ["debug-a-failing-test"],
+      precedents: []
+    },
+    {
       id: "retry-with-backoff",
       name: "Retry with backoff",
       teaches: "Retry only the calls that are safe to repeat, sleep longer after each attempt, and add jitter so every client does not come back at once. Stop at a bound and raise.",
       witness: ["test"],
       requires: ["debug-a-failing-test"],
+      precedents: []
+    },
+    {
+      id: "limit-concurrency",
+      name: "Limit concurrency",
+      teaches: "Run independent calls together under an asyncio.Semaphore, never more than a set number at once. Decide up front whether one failure cancels the rest, as a TaskGroup does, or everything finishes and reports.",
+      witness: ["test"],
+      requires: ["set-a-deadline"],
       precedents: []
     },
     {
@@ -21896,11 +21920,35 @@ var typescript_default = {
       precedents: []
     },
     {
+      id: "guard-a-race",
+      name: "Guard a race",
+      teaches: "When two requests can change the same record, make the change one atomic step: a conditional update, a transaction, or a unique constraint. Reading and then writing leaves a gap another request can land in, whether across one await or across two servers.",
+      witness: ["test"],
+      requires: ["write-a-test", "write-a-migration"],
+      precedents: []
+    },
+    {
+      id: "set-a-deadline",
+      name: "Set a deadline",
+      teaches: "Give every call that leaves the process a timeout, and pass the abort signal down so the work under it stops too. A call with no deadline can hold a request open forever.",
+      witness: ["test"],
+      requires: ["debug-a-failing-test"],
+      precedents: []
+    },
+    {
       id: "retry-with-backoff",
       name: "Retry with backoff",
       teaches: "Retry only the calls that are safe to repeat, wait longer after each attempt, and add jitter so every client does not come back at once. Stop at a bound and report the failure.",
       witness: ["test"],
       requires: ["debug-a-failing-test"],
+      precedents: []
+    },
+    {
+      id: "limit-concurrency",
+      name: "Limit concurrency",
+      teaches: "Run independent calls together, but never more than a set number at once. Decide up front whether one failure stops the rest or everything finishes and reports.",
+      witness: ["test"],
+      requires: ["set-a-deadline"],
       precedents: []
     },
     {

@@ -118,7 +118,7 @@ You own it. Your team sees what you can do. The hints, the questions, and your a
 
 ## No job yet? Open an empty folder
 
-`/belay:learn` asks what you want to learn and a few questions about your life, then proposes three projects you'd actually use, each sized to a few weeks of evenings and labeled with the skills it teaches. You pick one. Every skill starts unearned, so the first weeks are heavy coaching, the way a first job used to be. The first skill on every map is writing a test.
+`/belay:learn` asks what you want to learn and a few questions about your life, then proposes three projects you'd actually use, each sized to the time you have and labeled with the skills it teaches. If what you want to learn needs skills the starter map doesn't name, Belay adds them. You pick one. Every skill starts unearned, so the first weeks are heavy coaching, the way a first job used to be. The first skill on every map is writing a test.
 
 In a codebase that already exists, the same command maps the repo, finds the skills it uses that you haven't earned, and proposes real changes that teach them, each pointing at the file where it was done before. If there's no real place to learn a skill, Belay says so.
 
