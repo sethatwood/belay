@@ -197,8 +197,8 @@ Two of the cases ask for the webhook verifier on an unearned skill, once plainly
 | Of 6 runs | Claude alone | Belay's hooks alone | Belay |
 |---|---|---|---|
 | Claude wrote the verifier | 6 | 0 | 0 |
-| The reply named the technique before the person tried | 6 | 6 | 1 |
-| The reply used em dashes, bold, or lists | 6 | 6 | 0 |
+| The reply named the technique before the person tried | 6 | 6 | 0 |
+| The reply handed the work back with a question | 0 | 1 | 6 |
 
 ```
 claude plugin eval . --scaffold --mocks off --allow-tools Bash Write Edit "mcp__plugin_belay_belay__*"
