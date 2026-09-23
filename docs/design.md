@@ -195,7 +195,7 @@ Returns: nothing when `stop_hook_active` is true, since Claude Code is already c
 
 ## The starter maps
 
-`maps/typescript.json` and `maps/python.json`, shipped with the plugin and bundled into the server so `belay_init` can write them anywhere. Both use the same ten skill ids, so a logbook reads the same across languages; the `teaches` lines and witness kinds differ. The Python map's type witness is `mypy` or `pyright`. Ten skills, in the order a first project meets them, each with `teaches`, `witness`, and `requires`:
+`maps/typescript.json` and `maps/python.json`, shipped with the plugin and bundled into the server so `belay_init` can write them anywhere. Both use the same thirteen skill ids, so a logbook reads the same across languages; the `teaches` lines and witness kinds differ. The Python map's type witness is `mypy` or `pyright`. Thirteen skills, in the order a first project meets them, each with `teaches`, `witness`, and `requires`:
 
 1. `write-a-test`
 2. `debug-a-failing-test`
@@ -204,11 +204,16 @@ Returns: nothing when `stop_hook_active` is true, since Claude Code is already c
 5. `write-a-migration`
 6. `verify-webhook-signature`
 7. `idempotency-key`
-8. `retry-with-backoff`
-9. `handle-an-error-boundary`
-10. `add-a-background-job`
+8. `guard-a-race`
+9. `set-a-deadline`
+10. `retry-with-backoff`
+11. `limit-concurrency`
+12. `handle-an-error-boundary`
+13. `add-a-background-job`
 
-Precedents are empty in the shipped maps. `/belay:learn` fills them from the repo it runs in, through `belay_init`.
+Eight through eleven are the concurrency a service meets: a read-then-write that two requests can interleave, a call that never returns, a retry, and a fan-out with no limit. An in-process lock, a rate limiter, and worker threads are left out on purpose; a service with two servers needs the store to be atomic, not a lock, and the other two usually live in a library, a gateway, or a job. A team adds them with `/belay:team`.
+
+Precedents are empty in the shipped maps. `/belay:learn` fills them from the repo it runs in, through `belay_init`. In an empty folder, when what the person wants to learn needs skills the starter map does not name, `/belay:learn` adds them to the new map before the first step opens, the way `/belay:team` does for a team, and only skills a test, a build, or a type check can witness.
 
 ## The acceptance test
 

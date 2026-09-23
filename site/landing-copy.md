@@ -136,7 +136,7 @@ It's a plain text file in your repo. You can read it, and so can anyone you hand
 
 ## 6. Learn: no job yet? Open an empty folder
 
-Say what you want to learn. A language, a stack, or a thing you want to be able to build. Belay asks a few questions about your life, then proposes three projects you'd actually use, each sized to a few weeks of evenings, each labeled with the skills it teaches. You pick one. Every skill starts unearned, so the first weeks are heavy coaching, the way a first job used to be. The first skill on every map is writing a test, so there's a witness from day one. By the end, Belay writes the boilerplate and you do the parts that matter.
+Say what you want to learn. A language, a stack, or a thing you want to be able to build. Belay asks a few questions about your life, then proposes three projects you'd actually use, each sized to the time you have, each labeled with the skills it teaches. You pick one. Every skill starts unearned, so the first weeks are heavy coaching, the way a first job used to be. The first skill on every map is writing a test, so there's a witness from day one. By the end, Belay writes the boilerplate and you do the parts that matter.
 
 In a codebase that already exists, the same thing. Say what you want to learn here. Belay maps the repo, finds the skills it uses that you haven't earned, and proposes real changes that teach them: a missing test, a pattern the codebase already uses that you haven't done, a gap someone senior would have fixed. Each one points at the file where it was done before. If there's no real place to learn a skill, Belay says so.
 

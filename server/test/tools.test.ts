@@ -496,13 +496,13 @@ test("a step that does not ask to be a follow-up is not one, and says nothing ab
   }
 });
 
-test("both starter maps are bundled, with the same ten skill ids and requires in the same order", () => {
+test("both starter maps are bundled, with the same thirteen skill ids and requires in the same order", () => {
   assert.deepEqual(maps.names(), ["typescript", "python"]);
   const ts = maps.starter("typescript");
   const py = maps.starter("python");
   assert.notEqual(ts, null);
   assert.notEqual(py, null);
-  assert.equal(py?.skills.length, 10);
+  assert.equal(py?.skills.length, 13);
   assert.equal(py?.threshold, 3);
   assert.equal(py?.mastery, 5);
   assert.deepEqual(py?.zones, []);
@@ -513,6 +513,18 @@ test("both starter maps are bundled, with the same ten skill ids and requires in
     assert.ok(skill.teaches.length > 0, `${skill.id} teaches nothing`);
   }
   assert.equal(maps.starter("ruby"), null);
+});
+
+test("each starter skill requires only skills that come before it in the map", () => {
+  for (const name of maps.names()) {
+    const seen = new Set<string>();
+    for (const skill of maps.starter(name)?.skills ?? []) {
+      for (const id of skill.requires) {
+        assert.ok(seen.has(id), `${name}: ${skill.id} requires ${id}, which is not above it`);
+      }
+      seen.add(skill.id);
+    }
+  }
 });
 
 test("each starter map comes back as a copy, so merging into one leaves the next alone", () => {
@@ -534,7 +546,7 @@ test("belay_init sets a fresh directory up", () => {
     const written = readJson(join(f.root, ".belay/map.json"));
     assert.equal(written.threshold, 3);
     assert.equal(written.mastery, 5);
-    assert.equal(skillsOf(written).length, 10);
+    assert.equal(skillsOf(written).length, 13);
     assert.equal(skillsOf(written)[0].id, "write-a-test");
 
     assert.deepEqual(readJson(join(f.root, ".claude/settings.json")), { outputStyle: "belay:Belay" });
